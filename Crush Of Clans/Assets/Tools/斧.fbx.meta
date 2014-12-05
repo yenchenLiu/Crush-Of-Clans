@@ -1,0 +1,142 @@
+fileFormatVersion: 2
+guid: 9ed08abff3ee24a1dab35a947cc72edd
+ModelImporter:
+  serializedVersion: 16
+  fileIDToRecycleName:
+    100000: //RootNode
+    100002: _______11
+    100004: _______12
+    100006: _______13
+    100008: _______14
+    100010: _______15
+    100012: _______23
+    100014: _______24
+    100016: _______25
+    100018: _______26
+    100020: _______27
+    100022: _______7
+    100024: _______7_2
+    100026: _______7_3
+    100028: _______8
+    100030: _______8_2
+    100032: _______8_3
+    400000: //RootNode
+    400002: _______11
+    400004: _______12
+    400006: _______13
+    400008: _______14
+    400010: _______15
+    400012: _______23
+    400014: _______24
+    400016: _______25
+    400018: _______26
+    400020: _______27
+    400022: _______7
+    400024: _______7_2
+    400026: _______7_3
+    400028: _______8
+    400030: _______8_2
+    400032: _______8_3
+    2300000: _______11
+    2300002: _______12
+    2300004: _______13
+    2300006: _______14
+    2300008: _______15
+    2300010: _______23
+    2300012: _______24
+    2300014: _______25
+    2300016: _______26
+    2300018: _______27
+    2300020: _______7
+    2300022: _______7_2
+    2300024: _______7_3
+    2300026: _______8
+    2300028: _______8_2
+    2300030: _______8_3
+    3300000: _______11
+    3300002: _______12
+    3300004: _______13
+    3300006: _______14
+    3300008: _______15
+    3300010: _______23
+    3300012: _______24
+    3300014: _______25
+    3300016: _______26
+    3300018: _______27
+    3300020: _______7
+    3300022: _______7_2
+    3300024: _______7_3
+    3300026: _______8
+    3300028: _______8_2
+    3300030: _______8_3
+    4300000: _______27
+    4300002: _______26
+    4300004: _______25
+    4300006: _______24
+    4300008: _______23
+    4300010: _______15
+    4300012: _______14
+    4300014: _______13
+    4300016: _______12
+    4300018: _______11
+    4300020: _______8
+    4300022: _______8_2
+    4300024: _______8_3
+    4300026: _______7
+    4300028: _______7_2
+    4300030: _______7_3
+    9500000: //RootNode
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationCompression: 1
+    animationRotationError: .5
+    animationPositionError: .5
+    animationScaleError: .5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: .00999999978
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+  tangentSpace:
+    normalSmoothAngle: 60
+    splitTangentsAcrossUV: 1
+    normalImportMode: 0
+    tangentImportMode: 1
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: .5
+    foreArmTwist: .5
+    upperLegTwist: .5
+    legTwist: .5
+    armStretch: .0500000007
+    legStretch: .0500000007
+    feetSpacing: 0
+    rootMotionBoneName: 
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  additionalBone: 0
+  userData: 
