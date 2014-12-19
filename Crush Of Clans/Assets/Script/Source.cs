@@ -2,20 +2,27 @@
 using System.Collections;
 
 public class Source : MonoBehaviour {
-	public int kind ,quatity;
+	//資料庫
+		/*
+		Source的欄位：
+		SourceID(看需不需要)
+		x(x座標)
+		z(z座標)
+		kind(種類)
+		quatity(數量)
+
+		*/
+	public int kind ,quatity,x,z;
+
+	public bool triggerStatus;
 
 	public static int output,outputQuataty;
 //	public string Kind { get; set; }
 	// Use this for initialization
 
-	public static int getKind(){
-		return output;
-	}	
-	public static int getQuatity(){
-		return outputQuataty;
-	}
 	void Start () {
-	
+		//triggerStatus = false;
+
 	}
 	
 	// Update is called once per frame
@@ -28,5 +35,17 @@ public class Source : MonoBehaviour {
 			outputQuataty=this.quatity;
 			//print (output);
 		}
+		if (other.tag == "Source") {
+			//資料庫
+			/*
+			DELETE Source
+			Key: x,z
+			*/
+			Destroy(this.gameObject);	
+		}
+	}
+	void OnTriggerExit(Collider toher){
+
+			triggerStatus=false;		
 	}
 }
