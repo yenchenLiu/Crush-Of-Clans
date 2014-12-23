@@ -13,8 +13,11 @@ public class ScientificHouse : MonoBehaviour {
 		ScienceHouseHP=100;(暫定耐久)
 
 		*/
+		private int[,] LevelUpSource = {{10,10,0},{20,20,0},{30,30,20},{100,100,40}};
+		public int HouseLevel=1;
+	
 		public int[,] needSource = {{2,1}};
-		public bool work;
+		public bool work,LevelUp;
 		public int HP=100,Lelel=1;
 		public string PlayerID;
 	
@@ -24,8 +27,9 @@ public class ScientificHouse : MonoBehaviour {
 		private Player playerNow;
 		// Use this for initialization
 		void Start () {
-			selectSource = 0;
 			work = false;
+			LevelUp = false;
+			selectSource = 0;
 			vSliderValue =Screen.height * 1 / 4;
 		}
 		
@@ -39,7 +43,7 @@ public class ScientificHouse : MonoBehaviour {
 				GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height),"");
 				vSliderValue = GUI.VerticalSlider(new Rect(7*Screen.width/8, Screen.height/3, Screen.width/16, Screen.height*2/5), vSliderValue, Screen.height+Screen.height/4, Screen.height * 1 / 4);
 				if (GUI.Button (new Rect (Screen.width* 1/2, vSliderValue-(0*Screen.height/2) , Screen.width/3, Screen.height/2 ),"Metal")){
-				selectSource=0;
+					selectSource=0;
 					
 				}
 				/*if (GUI.Button (new Rect (Screen.width* 1/2, vSliderValue-(1*Screen.height/2) , Screen.width/3, Screen.height/2 ),"Tool2")){
@@ -58,6 +62,7 @@ public class ScientificHouse : MonoBehaviour {
 						for(int i=0;i<=1;i++){
 							playerNow.source[i]-=needSource[selectSource,i];
 						}
+						
 					//playerNow.weightNow = (playerNow.source [0] * playerNow.weight [0])+(playerNow.source [1] * playerNow.weight [1]) + (playerNow.source [2] * playerNow.weight [2]);
 					//資料庫
 					/*
@@ -77,10 +82,34 @@ public class ScientificHouse : MonoBehaviour {
 					work=false;		
 					playerNow.click=false;
 				}
+				if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 2/ 8 , Screen.width/10, Screen.height/8 ),"LevelUp")){
+					LevelUp=true;
+					work=false;
+				}
 				
+
+		}
+			
+		if(LevelUp==true){
+			GUI.Box (new Rect ( Screen.width/4, Screen.height/4, Screen.width/2, Screen.height/2),"LevelUp");
+			string LevelUpText="Wood:"+LevelUpSource[HouseLevel-1,0]+"\r\nStone:"+LevelUpSource[HouseLevel-1,1]+"\r\nMetal:"+LevelUpSource[HouseLevel-1,2];
+			GUI.TextArea(new Rect (Screen.width*2/6, Screen.height*2/ 6 , Screen.width/3, Screen.height/3 ),LevelUpText);
+			if (GUI.Button (new Rect (Screen.width*3/8, Screen.height* 5/ 6 , Screen.width/4, Screen.height/8 ),"LevelUp")){
+				if(playerNow.source[0]>=LevelUpSource[HouseLevel-1,0]&&playerNow.source[1]>=LevelUpSource[HouseLevel-1,1]&&playerNow.source[2]>=LevelUpSource[HouseLevel-1,2]){
+					HouseLevel++;
+					work=false;
+					LevelUp=false;
+					playerNow.click=false;
+					playerNow.infomationText("Science House Level Up!");
+					
+				}
+			}
+			if (GUI.Button (new Rect (Screen.width*3/4-Screen.width/10, Screen.height* 1/ 4 , Screen.width/10, Screen.height/10 ),"X")){
+				LevelUp=false;
+				work=true;
 			}
 			
-			
+		}
 		}
 		void OnTriggerStay(Collider other){
 			if (other.tag == "Player") {

@@ -35,7 +35,7 @@ public class Source : MonoBehaviour {
 			outputQuataty=this.quatity;
 			//print (output);
 		}
-		if (other.tag == "Source") {
+		if (other.tag == "Source") {s
 			//資料庫
 			/*
 			DELETE Source

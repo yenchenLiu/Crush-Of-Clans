@@ -27,7 +27,7 @@ public class House : MonoBehaviour {
 			x=5*((int)player.transform.position.x/5) -5;
 			//y=(int)GameObject.FindGameObjectWithTag ("Player").transform.position.y;
 			z=5*((int)player.transform.position.z/5)-5;
-			this.transform.parent.transform.position = new Vector3 (x -10, 0, z);
+			this.transform.parent.transform.position = new Vector3 (x , 0, z);
 
 		
 		//}
@@ -57,14 +57,21 @@ public class House : MonoBehaviour {
 				source[1]=player.source[1](stone)
 				source[2]=player.source[2](metal)
 				*/
+				thisPlayer.infomationText("The House is Build");
+			//	thisPlayer.infotext="The House is Build";
+			//	thisPlayer.info=true;
+			//	thisPlayer.infoTime=Time.time;
 				HouseLevelUp thisParent= this.transform.parent.GetComponent<HouseLevelUp>();
 				thisParent.PlayerID=PlayerID;
+				thisPlayer.click=false;
 				build = false;
 
 				Destroy(this.gameObject);
 			}			
 		}
 		if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 1/ 8 , Screen.width/10, Screen.height/8 ),"X")){
+			thisPlayer.click=false;
+			
 			Destroy (this.transform.parent.gameObject);
 			//build=false;				
 		}

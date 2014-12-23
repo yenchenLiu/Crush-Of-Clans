@@ -9,7 +9,7 @@ public class Player : MonoBehaviour {
 	x(x座標)
 	z(z座標)
 	cart(目前使用的交通工具)
-	tool(目前使用的採集工具)
+	tool(目前使用的採集工具) 
 	source[0](wood)
 	source[1](stone)
 	source[2](metal)
@@ -24,25 +24,30 @@ public class Player : MonoBehaviour {
 	//status
 	public string PlayerID="000";
 	private float picktime;
+	public float infoTime;
 	public int tool,cart;
 	private int Status;//0無狀態可蓋房子、 1採資源、2倉庫、3工作屋、4精煉屋、5裝炸彈 6"UpGrade" 
 	public  int[] source={0,0,0};//0 wood, 1 stone ,2 metal;
 	public  string[] sourceName={"wood","stone","metal"};//0 wood, 1 stone ,2 metal;
 	public int[] weight = {5,10,50};//0 wood, 1 stone ,2 metal;
 	public int x,y,z;
-	public bool Build=false,click=false;
+	public bool Build=false,click=false,Bomb=false;
 	private Rigidbody BuildNow;
 	private GameObject PickSource,TriggerHouse;
 	public Rigidbody build_house;
-	
+	public bool info;
+	public string infotext;
+
 	//attribute
-	private int[] pick = {5,10,20};
-	public int[] toolLevel = {1,0,0};
+	private int[,] pick = {{0,5,10,15,20,25},{0,10,20,30,40,50},{0,20,40,60,80,100},{0,0,0,0,0,0}};
+	public int[] toolLevel = {1,0,0,0};
 	public int[] cartLevel = {1,0};
 	private string[] StatusName={"蓋房子","採資源","倉庫","合成","精煉","裝炸彈","UpGrade"};
+	private string[] toolName={"手","十字鎬","斧頭","炸彈"};
+	private string[] cartName={"手","推車"};
 	private float view;
 	public int[] package = {1000,2000};
-	private int[] CDtime = {5,2,2};
+	private int[] CDtime = {5,2,2,0};
 	public int weightNow;
 
 	// Use this for initialization
@@ -66,6 +71,7 @@ public class Player : MonoBehaviour {
 			cartLevel[1](手推車搬運等級)
 			這些全部先印出來就好
 		*/
+		info = false;
 		weightNow = 0;
 		cart = 0;
 		tool = 0;
@@ -120,7 +126,18 @@ public class Player : MonoBehaviour {
 	}
 
 	//Status = 0 虛擬搖桿 移動
+	public void infomationText(string text){
+		infotext = text;
+		info = true;
+		infoTime = Time.time;
+	}
 	void OnGUI(){
+		if (info == true) {
+			GUI.Box (new Rect (Screen.width*1/3, Screen.height/5, Screen.width/3, Screen.height / 10),infotext);
+			if((int)(Time.time-infoTime)==1){
+				info=false;
+			}
+		}
 		GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height / 10),"");
 
 		GUI.Box (new Rect ( 0, 0, Screen.width/8, Screen.height / 10),"Wood");
@@ -132,13 +149,20 @@ public class Player : MonoBehaviour {
 
 		GUI.Box (new Rect ( 6*Screen.width/8, 0, Screen.width/8, Screen.height / 10),"Weight");
 		GUI.Box (new Rect ( 7*Screen.width/8, 0, Screen.width/8, Screen.height / 10),weightNow.ToString());
+		GUI.Box (new Rect ( 0, Screen.height / 10, Screen.width/8, Screen.height / 10),toolName[tool]+pick[tool,toolLevel[tool]].ToString());
+		GUI.Box (new Rect ( 0, Screen.height *2/ 10, Screen.width/8, Screen.height / 10),cartName[cart]+package[cart].ToString());
 		string ButtonText;
-		if (Time.time - picktime < CDtime [tool] && Status==1) {
+		if (Time.time - picktime < CDtime[tool] && Status==1) {
 			GUI.enabled=false;
-			ButtonText =StatusName [Status]+"\r\n"+ ((int)(CDtime [tool] - (Time.time - picktime))).ToString ();
+			ButtonText =StatusName[Status]+"\r\n"+ ((int)(CDtime [tool] - (Time.time - picktime))).ToString ();
 						//GUI.Box(new Rect (9 * Screen.width / 10, Screen.height * 1 / 8, Screen.width / 10, Screen.height / 8), ((int)( CDtime[tool]-(Time.time - picktime) )).ToString() );		
-		} else {
-			ButtonText = StatusName [Status]	;
+		} 
+		else {
+			ButtonText=StatusName[Status];
+		}
+		if (tool==3 && click == false && Build == false && Bomb==true && GUI.Button (new Rect (Screen.width * 5 / 6, Screen.height * 2 / 4, Screen.width / 6, Screen.height / 4), "Destroy")) {
+			Destroy(TriggerHouse.gameObject);
+			Bomb=false;
 		}
 		if ( click==false && Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),ButtonText)){
 
@@ -156,14 +180,17 @@ public class Player : MonoBehaviour {
 					int kind=pickup.kind;
 					int quatity=pickup.quatity;
 					int sourceWeight=weight[kind];
+					int getQutity;
 					print (quatity);
-					if(quatity<=pick[tool]){
+					if(quatity<=pick[tool,toolLevel[tool]]){
 						if(package[cart]-weightNow-(quatity*sourceWeight)<0){
-							int getQutity = (package[cart]-weightNow)/sourceWeight;
+							getQutity = (package[cart]-weightNow)/sourceWeight;
 							source[kind]+=getQutity;
 							pickup.quatity-=getQutity;
 							//weightNow+=getQutity*sourceWeight;
 						}else{
+							getQutity=quatity;
+								
 							source[kind]+=quatity;
 							pickup.quatity-=quatity;
 							//weightNow+=quatity*sourceWeight;
@@ -177,20 +204,24 @@ public class Player : MonoBehaviour {
 						}
 						
 					}else{
-						if(package[cart]-weightNow-(pick[tool]*sourceWeight)<0){
-							int getQutity = (package[cart]-weightNow)/sourceWeight;
+						if(package[cart]-weightNow-(pick[tool,toolLevel[tool]]*sourceWeight)<0){
+							getQutity = (package[cart]-weightNow)/sourceWeight;
 							source[kind]+=getQutity;
 							pickup.quatity-=getQutity;
 							//weightNow+=getQutity*sourceWeight;
 							
 						}else{
-							source[kind]+=pick[tool];
-							pickup.quatity-=pick[tool];
+							getQutity=pick[tool,toolLevel[tool]];
+							source[kind]+=pick[tool,toolLevel[tool]];
+							pickup.quatity-=pick[tool,toolLevel[tool]];
 						//	weightNow+=pick[tool]*sourceWeight;
 							
 						}
 					}
-					
+					infomationText("Get "+getQutity.ToString()+" "+sourceName[kind]+"s !");
+					//infotext=sourceName[kind]+":"+getQutity.ToString();
+					//info=true;
+					//infoTime=Time.time;
 					print ("wood: "+source[0]+" Stone: "+source[1]+"Weight:"+weightNow);
 					////////資料庫
 					/*
@@ -253,12 +284,13 @@ public class Player : MonoBehaviour {
 			
 			if (GUI.Button (new Rect (Screen.width* 1/2, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),"House")){
 				if(source[0]>=BuildHouse.needSource[0] && source[1]>=BuildHouse.needSource[1] && source[2]>=BuildHouse.needSource[2]){
-					BuildNow = (Rigidbody)Instantiate(build_house,new Vector3(x-10,y,z-10),build_house.transform.rotation);
+					BuildNow = (Rigidbody)Instantiate(build_house,new Vector3(x-5,y,z-5),build_house.transform.rotation);
 					House thisBuild=BuildNow.gameObject.GetComponent<House>();
 					//Player thisPlayer=this.gameObject.GetComponent<Player>();
 					//thisBuild.player=thisPlayer;
 					//thisBuild.PlayerID=PlayerID;
-					Build=false;				
+					Build=false;
+					click=true;
 				}
 
 			}	
@@ -266,7 +298,8 @@ public class Player : MonoBehaviour {
 			GUI.TextArea(new Rect (Screen.width* 1/8, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),text);
 			
 			if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 1/ 8 , Screen.width/10, Screen.height/8 ),"X")){
-				Build=false;				
+				Build=false;	
+				click=false;
 			}
 
 
@@ -275,36 +308,43 @@ public class Player : MonoBehaviour {
 
 
 	}
+
+
 	void OnTriggerStay(Collider other){
 
 		switch (other.tag)
 		{
 		case "Source":
 			PickSource=other.gameObject;
+
 			Status = 1;
 			break;
 		case "Stock":
 			TriggerHouse=other.gameObject;
+			Bomb=true;		
 			Status = 2;
 			
 			break;
 		case "Work":
 			TriggerHouse=other.gameObject;
+			Bomb=true;		
 			//print (WorkHouse.)
 			Status = 3;
 			
 			break;
 		case "Science":
 			TriggerHouse=other.gameObject;
+			Bomb=true;		
 			
 			Status = 4;
 			
 			break;
 		case "Enemy":
 			Status = 5;
-		
+			
 			break;
 		case "House":
+			Bomb=true;		
 			Status = 6;
 			TriggerHouse=other.gameObject;
 			
@@ -313,9 +353,10 @@ public class Player : MonoBehaviour {
 			Status = 0;
 			break;
 		}
-
+		
 	}
 	void OnTriggerExit(Collider other){
+		Bomb=false;
 		PickSource = null;
 		Status = 0;
 	}
