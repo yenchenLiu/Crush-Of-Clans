@@ -22,13 +22,14 @@ public class WorkHouse : MonoBehaviour {
 	public string PlayerID;
 	private float vSliderValue;
 	private GameObject player;
-	private string[] toolName={"cross","knife","bomb","cart"};
+	private string[] toolName={"knife","cross","bomb","cart"};
 	public GameObject[] tool={null,null,null,null};
 	//private GameObject[] tool = {null,null,null};
 	private int selectTool,selectToolKind;
 	private Player playerNow;
 	// Use this for initialization
 	void Start () {
+
 		selectTool = 0;
 		work = false;
 		LevelUp = false;
@@ -45,10 +46,10 @@ public class WorkHouse : MonoBehaviour {
 		if (work == true) {
 
 			GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height),"");
-			if (GUI.Button (new Rect (Screen.width* 1/6, Screen.height/8 , Screen.width/6, Screen.height/8 ),"十字鎬")){
+			if (GUI.Button (new Rect (Screen.width* 1/6, Screen.height/8 , Screen.width/6, Screen.height/8 ),"斧頭")){
 				selectTool=0;	
 			}
-			if (GUI.Button (new Rect (Screen.width* 2/6, Screen.height/8 , Screen.width/6, Screen.height/8 ),"斧頭")){
+			if (GUI.Button (new Rect (Screen.width* 2/6, Screen.height/8 , Screen.width/6, Screen.height/8 ),"十字鎬")){
 				selectTool=1;	
 			}
 			if (GUI.Button (new Rect (Screen.width* 3/6, Screen.height/8 , Screen.width/6, Screen.height/8 ),"炸彈")){
@@ -105,7 +106,7 @@ public class WorkHouse : MonoBehaviour {
 
 
 					for(int i=0;i<=2;i++){
-						playerNow.source[i]-=needSource[selectTool,i];
+						playerNow.source[i]-=needSource[selectToolKind,i];
 					}
 					//資料庫
 					/*
@@ -130,6 +131,7 @@ public class WorkHouse : MonoBehaviour {
 						Destroy(playerNow.transform.FindChild("People").gameObject.transform.FindChild("Hand").gameObject.transform.FindChild(toolName[playerNow.tool-1]).gameObject);
 					}
 					playerNow.tool=selectTool+1;
+					playerNow.toolKind=selectToolKind;
 					GameObject usetool=(GameObject) Instantiate(tool[selectTool],playerNow.transform.FindChild("People").gameObject.transform.FindChild("Hand").gameObject.transform.position,tool[selectTool].transform.rotation);
 					usetool.transform.parent=playerNow.transform.FindChild("People").gameObject.transform.FindChild("Hand").gameObject.transform;
 					usetool.name=tool[selectTool].name;
@@ -143,6 +145,8 @@ public class WorkHouse : MonoBehaviour {
 			if(selectTool==3 && playerNow.cartLevel[1]!=0){
 				if(GUI.Button(new Rect(Screen.width* 9 / 10, Screen.height* 2 / 6 , Screen.width/10, Screen.height/6 ),"裝備")){
 					playerNow.cart=1;
+					playerNow.cartKind=selectToolKind;
+					
 					playerNow.infomationText("Cart is Equiped");
 					work=false;		
 					LevelUp=false;		
@@ -156,6 +160,7 @@ public class WorkHouse : MonoBehaviour {
 						Destroy(playerNow.transform.FindChild("People").gameObject.transform.FindChild("Hand").gameObject.transform.FindChild(toolName[playerNow.tool-1]).gameObject);
 					}
 					playerNow.tool=0;
+					playerNow.toolKind=0;
 					playerNow.infomationText(toolName[selectTool]+" is took off");
 					work=false;		
 					LevelUp=false;		
@@ -165,6 +170,8 @@ public class WorkHouse : MonoBehaviour {
 			if(selectTool==3 && playerNow.cart==1){
 				if(GUI.Button(new Rect(Screen.width* 9 / 10, Screen.height* 3 / 6 , Screen.width/10, Screen.height/6 ),"卸載")){
 					playerNow.tool=0;
+					playerNow.cartKind=0;
+					
 					playerNow.infomationText("Cart is took off");
 					work=false;		
 					LevelUp=false;		

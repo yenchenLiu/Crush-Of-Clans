@@ -65,12 +65,13 @@ public class StockHouse : MonoBehaviour {
 		}
 	}
 	void OnGUI () {
+		//style.fontSize = 30;
 		if (work == true) {
 			//vSliderValue=(playerNow.source[selectSource])>0?playerNow.source[selectSource]:0;
 			playerSource=playerNow.source [selectSource];
 
 			GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height),"");
-			hSliderValue=GUI.HorizontalSlider(new Rect(Screen.width/8, Screen.height*5/6, Screen.width*6/8, Screen.height/8), hSliderValue,Screen.height * 1 /8 ,  Screen.width);
+			hSliderValue=GUI.HorizontalSlider(new Rect(Screen.width/8, Screen.height*5/6, Screen.width*6/8, Screen.height/6), hSliderValue,Screen.height * 1 /8 ,  Screen.width);
 			if (GUI.Button (new Rect (hSliderValue, Screen.height/4 , Screen.width/4, Screen.height/2 ),"Wood\r\nStock:  "+stockSource[0].ToString())){
 				selectSource=0;
 				limit=playerNow.package[playerNow.cart]-playerNow.source[1]*playerNow.weight[1]-playerNow.source[2]*playerNow.weight[2];
@@ -95,7 +96,7 @@ public class StockHouse : MonoBehaviour {
 				
 			}
 
-			vSliderValue = (int)GUI.VerticalSlider(new Rect(7*Screen.width/8, Screen.height/3, Screen.width/14, Screen.height*2/5), (float)vSliderValue, (float)(stockSource[selectSource]+playerNow.source[selectSource]),0 );
+			vSliderValue = (int)GUI.VerticalSlider(new Rect(7*Screen.width/8, Screen.height/3, Screen.width/6, Screen.height*2/5), (float)vSliderValue, (float)(stockSource[selectSource]+playerNow.source[selectSource]),0 );
 
 			
 			//GUI.TextArea(new Rect (Screen.width* 1/8, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),text);

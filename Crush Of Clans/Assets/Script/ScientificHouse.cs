@@ -27,6 +27,8 @@ public class ScientificHouse : MonoBehaviour {
 		private Player playerNow;
 		// Use this for initialization
 		void Start () {
+
+
 			work = false;
 			LevelUp = false;
 			selectSource = 0;

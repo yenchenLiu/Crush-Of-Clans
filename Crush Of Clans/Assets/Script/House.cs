@@ -13,6 +13,8 @@ public class House : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
+
+
 		this.build = true;
 		this.renderer.material.color =Color.green;
 		player = GameObject.Find ("Player").gameObject;

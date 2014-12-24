@@ -21,7 +21,7 @@ public class HouseLevelUp : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
-	
+
 	}
 	
 	// Update is called once per frame

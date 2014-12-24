@@ -10,6 +10,8 @@ public class map : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+
+
 		starttime = Time.time;
 		//資料庫
 		/*
@@ -68,7 +70,7 @@ public class map : MonoBehaviour {
 		if ( (int)(Time.time - starttime )% 10 == 0 ) {
 			GameObject[] temp = GameObject.FindGameObjectsWithTag("Source");
 
-			if(temp.Length<=5){
+			if(temp.Length<=5000){
 				int x, z, kind;
 				//for(int i=0;i<5;i++){
 					x= 10*(UnityEngine.Random.Range(0, 2000)/10);//r.Next(2000);

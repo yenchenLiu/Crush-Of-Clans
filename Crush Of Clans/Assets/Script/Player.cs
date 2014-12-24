@@ -23,35 +23,42 @@ public class Player : MonoBehaviour {
 	*/
 	//status
 	public string PlayerID="000";
-	private float picktime;
+	private float picktime,GameTime,BombTimeCount;
 	public float infoTime;
-	public int tool,cart;
+	public int tool,cart,toolKind,cartKind,j,w,h;
 	private int Status;//0無狀態可蓋房子、 1採資源、2倉庫、3工作屋、4精煉屋、5裝炸彈 6"UpGrade" 
 	public  int[] source={0,0,0};//0 wood, 1 stone ,2 metal;
 	public  string[] sourceName={"wood","stone","metal"};//0 wood, 1 stone ,2 metal;
 	public int[] weight = {5,10,50};//0 wood, 1 stone ,2 metal;
 	public int x,y,z;
-	public bool Build=false,click=false,Bomb=false;
+	public bool Build=false,click=false,Bomb=false,BombGameStart=false;
 	private Rigidbody BuildNow;
 	private GameObject PickSource,TriggerHouse;
+	public GameObject fire;
 	public Rigidbody build_house;
 	public bool info;
 	public string infotext;
 
 	//attribute
-	private int[,] pick = {{0,5,10,15,20,25},{0,10,20,30,40,50},{0,20,40,60,80,100},{0,0,0,0,0,0}};
+	private char[] BombGame={'1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','I','M','N','O','P'};
+	private char[] GameQ = {'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x'};
+	private int[] BombGameTime = {3,5,8,10};
+	private int[] pick = {5,10,20,50};//{{5,5,10,15},{10,20,30,40},{20,40,60,80},{30,60,90,120}};
+	private int[] BombGameButton = {4,9,16,25};
 	public int[] toolLevel = {1,0,0,0};
 	public int[] cartLevel = {1,0};
+	private string BombGameQ,BombGameInput;
 	private string[] StatusName={"蓋房子","採資源","倉庫","合成","精煉","裝炸彈","UpGrade"};
 	private string[] toolName={"手","十字鎬","斧頭","炸彈"};
 	private string[] cartName={"手","推車"};
 	private float view;
 	public int[] package = {1000,2000};
-	private int[] CDtime = {5,2,2,0};
+	private int[] CDtime = {5,4,3,2};
 	public int weightNow;
 
 	// Use this for initialization
 	void Start () {
+
 		////////資料庫
 		/*SELECT Player
 			key: PlayerID
@@ -80,7 +87,8 @@ public class Player : MonoBehaviour {
 		Build=false;
 		click = false;
 		picktime=Time.time-5;
-		
+		BombTimeCount = Time.time - 6;
+		BombGameStart = false;
 	}
 	
 	// Update is called once per frame
@@ -132,6 +140,9 @@ public class Player : MonoBehaviour {
 		infoTime = Time.time;
 	}
 	void OnGUI(){
+		GUI.skin.button.fontSize = 30;
+		GUI.skin.box.fontSize=30;
+		GUI.skin.textArea.fontSize = 30;
 		if (info == true) {
 			GUI.Box (new Rect (Screen.width*1/3, Screen.height/5, Screen.width/3, Screen.height / 10),infotext);
 			if((int)(Time.time-infoTime)==1){
@@ -149,10 +160,10 @@ public class Player : MonoBehaviour {
 
 		GUI.Box (new Rect ( 6*Screen.width/8, 0, Screen.width/8, Screen.height / 10),"Weight");
 		GUI.Box (new Rect ( 7*Screen.width/8, 0, Screen.width/8, Screen.height / 10),weightNow.ToString());
-		GUI.Box (new Rect ( 0, Screen.height / 10, Screen.width/8, Screen.height / 10),toolName[tool]+pick[tool,toolLevel[tool]].ToString());
+		GUI.Box (new Rect ( 0, Screen.height / 10, Screen.width/8, Screen.height / 10),toolName[tool]+pick[toolKind].ToString());
 		GUI.Box (new Rect ( 0, Screen.height *2/ 10, Screen.width/8, Screen.height / 10),cartName[cart]+package[cart].ToString());
 		string ButtonText;
-		if (Time.time - picktime < CDtime[tool] && Status==1) {
+		if (Time.time - picktime < CDtime[toolKind] && Status==1) {
 			GUI.enabled=false;
 			ButtonText =StatusName[Status]+"\r\n"+ ((int)(CDtime [tool] - (Time.time - picktime))).ToString ();
 						//GUI.Box(new Rect (9 * Screen.width / 10, Screen.height * 1 / 8, Screen.width / 10, Screen.height / 8), ((int)( CDtime[tool]-(Time.time - picktime) )).ToString() );		
@@ -160,8 +171,181 @@ public class Player : MonoBehaviour {
 		else {
 			ButtonText=StatusName[Status];
 		}
+
+		if (5 - (int)(Time.time - BombTimeCount) >= 1) {
+			infomationText(((int)(5-(Time.time-BombTimeCount))).ToString());
+					
+		}
+		if (BombGameStart == true) {
+
+			if(Time.time-GameTime>=BombGameTime[toolKind]){
+				infomationText("False....");
+				BombGameStart=false;
+
+			}	
+			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 1/ 10 , Screen.width/2, Screen.height/10 ),BombGameQ);
+			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 2/ 10, Screen.width/2, Screen.height/10 ),BombGameInput);
+			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 3/ 10, Screen.width/2*((BombGameTime[toolKind]-Time.time+GameTime)/BombGameTime[toolKind]), Screen.height/20 ),"");
+
+			switch(toolKind){
+			case 0:
+				w=1;
+				h=1;
+				for(int i=0;i<4;i++){
+					//if(h>2) h=1;
+					if(w>2){
+						w=1;
+						h++;
+					}
+
+					print (w+" "+h );
+					if (GUI.Button (new Rect (Screen.width*w/4, Screen.height* h/ 3 , Screen.width/4, Screen.height/3 ),BombGame[i].ToString())){
+						if(GameQ[j]!=BombGame[i]){
+							infomationText("False....");
+							BombGameStart=false;
+							break;
+						}else{
+							j++;
+							BombGameInput+=BombGame[i];
+							if(j>=4){
+								BombTimeCount=Time.time;
+
+							}
+						}
+					}
+					w++;
+
+				}
+			/*	if (GUI.Button (new Rect (Screen.width* 1/4, Screen.height* 1/ 3 , Screen.width/4, Screen.height/3 ),"1")){
+					if(GameQ[j]!='1'){
+						infomationText("False....");
+						BombGameStart=false;
+						break;
+					}else{
+						j++;
+						BombGameInput+=1;
+					}
+				}
+				if (GUI.Button (new Rect (Screen.width* 2/4, Screen.height* 1/ 3 , Screen.width/4, Screen.height/3 ),"2")){
+					if(GameQ[j]!='2'){
+						infomationText("False....");
+						
+						BombGameStart=false;
+						break;
+					}else{
+						BombGameInput+=2;
+						j++;
+					}
+				}
+				if (GUI.Button (new Rect (Screen.width* 1/4, Screen.height* 2/ 3 , Screen.width/4, Screen.height/3 ),"3")){
+					if(GameQ[j]!='3'){
+						infomationText("False....");
+						
+						BombGameStart=false;
+						break;
+					}else{
+						BombGameInput+=3;
+						j++;
+					}
+				}
+				if (GUI.Button (new Rect (Screen.width* 2/4, Screen.height* 2/ 3 , Screen.width/4, Screen.height/3 ),"4")){
+					if(GameQ[j]!='4'){
+						infomationText("False....");
+						
+						BombGameStart=false;
+						break;
+					}else{
+						BombGameInput+=4;
+						j++;
+					}
+				}*/
+				if (j>=4){
+
+					Destroy(TriggerHouse.gameObject,5);
+					Bomb=false;
+					BombGameStart=false;
+					j=0;
+				}
+				break;
+			case 1:
+				w=1;
+				h=1;
+				for(int i=0;i<9;i++){
+					
+					if(w>3){
+						w=1;
+						h++;
+					}
+					if (GUI.Button (new Rect (Screen.width*w/5, Screen.height* 1/ 3 + (Screen.height* (h-1)*2/ 9), Screen.width/5, Screen.height*2/9 ),BombGame[i].ToString())){
+						if(GameQ[j]!=BombGame[i]){
+							infomationText("False....");
+							BombGameStart=false;
+							break;
+						}else{
+							j++;
+							BombGameInput+=BombGame[i];
+						}
+					}
+					w++;
+				}
+				if (j>=9){
+					Destroy(TriggerHouse.gameObject);
+					Bomb=false;
+					BombGameStart=false;
+					j=0;
+				}
+				break;
+			case 2:
+				w=1;
+				h=1;
+				for(int i=0;i<16;i++){
+					
+					if(w>4){
+						w=1;
+						h++;
+					}
+					if (GUI.Button (new Rect (Screen.width*1/4+(Screen.width*(w-1)/8), Screen.height* 1/ 3 + (Screen.height* (h-1)/ 6), Screen.width/8, Screen.height*1/6 ),BombGame[i].ToString())){
+						if(GameQ[j]!=BombGame[i]){
+							infomationText("False....");
+							BombGameStart=false;
+							break;
+						}else{
+							j++;
+							BombGameInput+=BombGame[i];
+						}
+					}
+					w++;
+				}
+				if (j>=16){
+					Destroy(TriggerHouse.gameObject);
+					Bomb=false;
+					BombGameStart=false;
+					j=0;
+				}
+				break;
+			case 3:
+				break;
+				
+			}	
+		
+		}
+
 		if (tool==3 && click == false && Build == false && Bomb==true && GUI.Button (new Rect (Screen.width * 5 / 6, Screen.height * 2 / 4, Screen.width / 6, Screen.height / 4), "Destroy")) {
-			Destroy(TriggerHouse.gameObject);
+			j=0;
+			w=1;
+			h=1;
+			BombGameQ="";
+			BombGameInput="";
+			print (toolKind);
+
+			for(int i =0;i<BombGameButton[toolKind];i++){
+				GameQ[i]=BombGame[(int)(UnityEngine.Random.Range(0, BombGameButton[toolKind]))];
+				BombGameQ+=GameQ[i];
+				BombGameQ+=" ";
+			}	
+			BombGameStart=true;
+			GameTime=Time.time;
+			//Destroy(TriggerHouse.gameObject);
 			Bomb=false;
 		}
 		if ( click==false && Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),ButtonText)){
@@ -175,71 +359,72 @@ public class Player : MonoBehaviour {
 			case 1:			
 				//採集放這邊
 				//source++;
-				if(Time.time-picktime>CDtime[tool] && weightNow < package[cart]){
+				if(Time.time-picktime>CDtime[toolKind] && weightNow < package[cart]){
 					Source pickup=PickSource.GetComponent<Source>();					
 					int kind=pickup.kind;
-					int quatity=pickup.quatity;
-					int sourceWeight=weight[kind];
-					int getQutity;
-					print (quatity);
-					if(quatity<=pick[tool,toolLevel[tool]]){
-						if(package[cart]-weightNow-(quatity*sourceWeight)<0){
-							getQutity = (package[cart]-weightNow)/sourceWeight;
-							source[kind]+=getQutity;
-							pickup.quatity-=getQutity;
-							//weightNow+=getQutity*sourceWeight;
-						}else{
-							getQutity=quatity;
+					if(tool==0||kind+1==tool ){
+						int quatity=pickup.quatity;
+						int sourceWeight=weight[kind];
+						int getQutity;
+						print (quatity);
+						if(quatity<=pick[toolKind]){
+							if(package[cart]-weightNow-(quatity*sourceWeight)<0){
+								getQutity = (package[cart]-weightNow)/sourceWeight;
+								source[kind]+=getQutity;
+								pickup.quatity-=getQutity;
+								//weightNow+=getQutity*sourceWeight;
+							}else{
+								getQutity=quatity;
+									
+								source[kind]+=quatity;
+								pickup.quatity-=quatity;
+								//weightNow+=quatity*sourceWeight;
+								//資料庫
+								/*
+								DELETE Source
+								Key: x=pickup.x , z=pickup.z
+								*/
+								Destroy(PickSource.gameObject);
 								
-							source[kind]+=quatity;
-							pickup.quatity-=quatity;
-							//weightNow+=quatity*sourceWeight;
-							//資料庫
-							/*
-							DELETE Source
-							Key: x=pickup.x , z=pickup.z
-							*/
-							Destroy(PickSource.gameObject);
-							
-						}
-						
-					}else{
-						if(package[cart]-weightNow-(pick[tool,toolLevel[tool]]*sourceWeight)<0){
-							getQutity = (package[cart]-weightNow)/sourceWeight;
-							source[kind]+=getQutity;
-							pickup.quatity-=getQutity;
-							//weightNow+=getQutity*sourceWeight;
+							}
 							
 						}else{
-							getQutity=pick[tool,toolLevel[tool]];
-							source[kind]+=pick[tool,toolLevel[tool]];
-							pickup.quatity-=pick[tool,toolLevel[tool]];
-						//	weightNow+=pick[tool]*sourceWeight;
-							
+							if(package[cart]-weightNow-(pick[toolKind]*sourceWeight)<0){
+								getQutity = (package[cart]-weightNow)/sourceWeight;
+								source[kind]+=getQutity;
+								pickup.quatity-=getQutity;
+								//weightNow+=getQutity*sourceWeight;
+								
+							}else{
+								getQutity=pick[toolKind];
+								source[kind]+=pick[toolKind];
+								pickup.quatity-=pick[toolKind];
+							//	weightNow+=pick[tool]*sourceWeight;
+								
+							}
 						}
+						infomationText("Get "+getQutity.ToString()+" "+sourceName[kind]+"s !");
+						//infotext=sourceName[kind]+":"+getQutity.ToString();
+						//info=true;
+						//infoTime=Time.time;
+						print ("wood: "+source[0]+" Stone: "+source[1]+"Weight:"+weightNow);
+						////////資料庫
+						/*
+						UPDATE Player
+						key: PlayerID
+						欄位：
+						source[0]=source[0](wood)
+						source[1]=source[1](stone)
+						source[2]=source[2](metal)
+						(可以再加其他你想到資源種類)
+
+						UPDATE Source
+						key: x,y
+						quatity=pickup.quatity;
+
+						*/
+						picktime=Time.time;
 					}
-					infomationText("Get "+getQutity.ToString()+" "+sourceName[kind]+"s !");
-					//infotext=sourceName[kind]+":"+getQutity.ToString();
-					//info=true;
-					//infoTime=Time.time;
-					print ("wood: "+source[0]+" Stone: "+source[1]+"Weight:"+weightNow);
-					////////資料庫
-					/*
-					UPDATE Player
-					key: PlayerID
-					欄位：
-					source[0]=source[0](wood)
-					source[1]=source[1](stone)
-					source[2]=source[2](metal)
-					(可以再加其他你想到資源種類)
-
-					UPDATE Source
-					key: x,y
-					quatity=pickup.quatity;
-
-					*/
-					picktime=Time.time;
-
 				}
 				Status=0;
 				break;

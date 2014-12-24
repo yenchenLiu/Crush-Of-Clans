@@ -24,7 +24,7 @@ public class Source : MonoBehaviour {
 		//triggerStatus = false;
 
 	}
-	
+
 	// Update is called once per frame
 	void Update () {
 
@@ -35,7 +35,7 @@ public class Source : MonoBehaviour {
 			outputQuataty=this.quatity;
 			//print (output);
 		}
-		if (other.tag == "Source") {s
+		if (other.tag == "Source") {
 			//資料庫
 			/*
 			DELETE Source
