@@ -1,5 +1,11 @@
 ﻿using UnityEngine;
 using System.Collections;
+/*using System.Net.Sockets;
+using System.Net;
+using System;
+using System.IO;
+using System.Text;
+using System.Threading;*/
 
 public class Player : MonoBehaviour {
 	//資料庫
@@ -22,6 +28,8 @@ public class Player : MonoBehaviour {
 	cartLevel[1](手推車搬運等級)
 	*/
 	//status
+	public Texture[] FunctionButton;
+	public GUISkin guiSkin;
 	public string PlayerID="000";
 	private float picktime,GameTime,BombTimeCount;
 	public float infoTime;
@@ -55,6 +63,119 @@ public class Player : MonoBehaviour {
 	public int[] package = {1000,2000};
 	private int[] CDtime = {5,4,3,2};
 	public int weightNow;
+	public string serverIP="107.167.178.99";//"107.167.178.99";
+	public string serverPORT="25565";
+
+	//控制移動
+	public bool move_flag = false;
+	public float[] point = new float[2];
+	public float move_speed = 0.2f;
+	public Vector3 player_temp;
+
+
+	/// ///////////////////
+	
+	//網路用變數
+	//Socket: 網路溝通, Thread: 網路監聽
+	/*public Socket clientSocket;
+	Thread th_Listen;
+	
+	
+	private bool ConnectToServer() {
+		IPEndPoint ServerEP = new IPEndPoint(IPAddress.Parse(serverIP), int.Parse(serverPORT));
+		clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+		try
+		{
+			clientSocket.Connect(ServerEP);
+			th_Listen = new Thread(new ThreadStart(Listen));
+			th_Listen.Start();
+			Thread.Sleep(200);
+			print("Already connect to the Server!");
+			return true;
+			
+		}
+		catch (Exception ex) {
+			print("Can't connect to the Server!");
+			return false;
+		}
+	}
+	
+	public void Send(string strSend)
+	{
+		byte[] byteSend = new byte[1024];
+		
+		try
+		{
+			byteSend = Encoding.UTF8.GetBytes(strSend);
+			clientSocket.Send (byteSend);  
+		}
+		catch (Exception ex)
+		{
+			print(" Connection Break!");
+		}
+	}
+	
+	//監聽 Server 訊息 (Listening to the Server)
+	private void Listen() {
+		EndPoint ClientEP = clientSocket.RemoteEndPoint;
+		//接收要用的 Byte Array
+		Byte[] byteLoad = new byte[1024];
+		int loadLen;
+		
+		String strAll;    //接收到的完整訊息strAll=strCase+strInfo
+		String strCase;  //命令碼: 00 ~ 99 (前兩碼)
+		String strInfo;     //真正傳達的訊息
+		while(true)
+		{
+			try
+			{
+				
+				loadLen = clientSocket.ReceiveFrom(byteLoad, 0, byteLoad.Length, SocketFlags.None, ref ClientEP);
+				if (loadLen != 0) {
+					strAll = Encoding.UTF8.GetString (byteLoad, 0, loadLen);
+					print (strAll);
+					strCase = strAll.Substring(0, 2);
+					switch (strCase) {
+					case "21"://Server Send 01PlayID
+						strInfo = strAll.Substring(2);
+						PlayerID=strInfo;
+						break;
+						
+					case "10"://If Client Login Success 
+						strInfo = strAll.Substring(2);
+						PlayerID=strInfo;
+						print("Login Success!!");
+						print(PlayerID);
+						break;
+						
+					case "11"://If Client Login Failed
+						print("Login Error!!");
+						break;
+						
+					case "er"://If Client Send Message length < 2 , Server can send "er"
+						print ("command Error!!");
+						break;
+						
+					default:
+						break;
+					}
+				}
+				
+			}
+			catch (Exception)//產生錯誤時
+			{
+				clientSocket.Close();//關閉通訊器
+				
+				print("伺服器斷線了！");//顯示斷線
+				
+				th_Listen.Abort();//刪除執行緒
+			}
+		} 
+	}
+
+
+	*/
+	/// ///////////////////
 
 	// Use this for initialization
 	void Start () {
@@ -105,30 +226,69 @@ public class Player : MonoBehaviour {
 					x(x座標)
 					z(z座標)
 				*/
-				if (Input.GetKey (KeyCode.W)) {
-					this.transform.Translate (new Vector3 (0, 0, -1));
-
-					this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,180,0);
-				}
-		
-				if (Input.GetKey (KeyCode.S)) {
-					this.transform.Translate (new Vector3 (0, 0, 1));
-					this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,0,0);
+		player_temp = this.transform.position;	
+		if (Input.GetKey (KeyCode.W)) {
+			this.transform.Translate (new Vector3 (0, 0, -1));
+			this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,180,0);
 			
+			if(move_flag){
+				float start = Mathf.Pow(Mathf.Pow (player_temp.x - point[0], 2) + Mathf.Pow (player_temp.z - point[1], 2), 0.5f);
+				float end = Mathf.Pow(Mathf.Pow ((player_temp.x - move_speed) - point[0], 2) + Mathf.Pow ((player_temp.z - move_speed) - point[1], 2), 0.5f);
+				if(end <= start){
+					player_temp.x += move_speed ;
+					player_temp.z += move_speed ;
 				}
+			}
+			player_temp.x -= move_speed ;
+			player_temp.z -= move_speed ;
+		}
 		
-				if (Input.GetKey (KeyCode.D)) {
-					this.transform.Translate (new Vector3 (-1, 0, 0));
-					this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,270,0);
-			
+		if (Input.GetKey (KeyCode.S)) {
+			this.transform.Translate (new Vector3 (0, 0, 1));
+			this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,0,0);
+			if(move_flag){
+				float start = Mathf.Pow(Mathf.Pow (player_temp.x - point[0], 2) + Mathf.Pow (player_temp.z - point[1], 2), 0.5f);
+				float end = Mathf.Pow(Mathf.Pow ((player_temp.x + move_speed) - point[0], 2) + Mathf.Pow ((player_temp.z + move_speed) - point[1], 2), 0.5f);
+				if(end <= start){
+					player_temp.x -= move_speed ;
+					player_temp.z -= move_speed ;
 				}
+			}
+			player_temp.x += move_speed ;
+			player_temp.z += move_speed ;
+		}
 		
-				if (Input.GetKey (KeyCode.A)) {
-					this.transform.Translate (new Vector3 (1, 0, 0));
-					this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,90,0);
-			
+		if (Input.GetKey (KeyCode.D)) {
+			this.transform.Translate (new Vector3 (-1, 0, 0));
+			this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,270,0);
+			if(move_flag){
+				float start = Mathf.Pow(Mathf.Pow (player_temp.x - point[0], 2) + Mathf.Pow (player_temp.z - point[1], 2), 0.5f);
+				float end = Mathf.Pow(Mathf.Pow ((player_temp.x - move_speed) - point[0], 2) + Mathf.Pow ((player_temp.z + move_speed) - point[1], 2), 0.5f);
+				if(end <= start){
+					player_temp.x += move_speed ;
+					player_temp.z -= move_speed ;
 				}
-
+			}
+			player_temp.x -= move_speed ;
+			player_temp.z += move_speed ;
+		}
+		
+		if (Input.GetKey (KeyCode.A)) {
+			this.transform.Translate (new Vector3 (1, 0, 0));
+			this.transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0,90,0);
+			if(move_flag){
+				float start = Mathf.Pow(Mathf.Pow (player_temp.x - point[0], 2) + Mathf.Pow (player_temp.z - point[1], 2), 0.5f);
+				float end = Mathf.Pow(Mathf.Pow ((player_temp.x + move_speed) - point[0], 2) + Mathf.Pow ((player_temp.z - move_speed) - point[1], 2), 0.5f);
+				if(end <= start){
+					player_temp.x -= move_speed ;
+					player_temp.z += move_speed ;
+				}
+			}
+			player_temp.x += move_speed ;
+			player_temp.z -= move_speed ;
+		}
+		this.transform.position = player_temp;
+		
 
 
 	}
@@ -140,11 +300,21 @@ public class Player : MonoBehaviour {
 		infoTime = Time.time;
 	}
 	void OnGUI(){
+
+		/*if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
+			ConnectToServer();
+			Send("10singo");
+		}
+		if (GUILayout.Button ("Send", GUILayout.Height(50))) {
+			
+			Send("01singo");
+		}*/
+
 		GUI.skin.button.fontSize = 30;
 		GUI.skin.box.fontSize=30;
 		GUI.skin.textArea.fontSize = 30;
 		if (info == true) {
-			GUI.Box (new Rect (Screen.width*1/3, Screen.height/5, Screen.width/3, Screen.height / 10),infotext);
+			GUI.Box (new Rect (Screen.width*1/3, Screen.height/5, Screen.width/3, Screen.height / 10),infotext,guiSkin.box);
 			if((int)(Time.time-infoTime)==1){
 				info=false;
 			}
@@ -216,54 +386,13 @@ public class Player : MonoBehaviour {
 					w++;
 
 				}
-			/*	if (GUI.Button (new Rect (Screen.width* 1/4, Screen.height* 1/ 3 , Screen.width/4, Screen.height/3 ),"1")){
-					if(GameQ[j]!='1'){
-						infomationText("False....");
-						BombGameStart=false;
-						break;
-					}else{
-						j++;
-						BombGameInput+=1;
-					}
-				}
-				if (GUI.Button (new Rect (Screen.width* 2/4, Screen.height* 1/ 3 , Screen.width/4, Screen.height/3 ),"2")){
-					if(GameQ[j]!='2'){
-						infomationText("False....");
-						
-						BombGameStart=false;
-						break;
-					}else{
-						BombGameInput+=2;
-						j++;
-					}
-				}
-				if (GUI.Button (new Rect (Screen.width* 1/4, Screen.height* 2/ 3 , Screen.width/4, Screen.height/3 ),"3")){
-					if(GameQ[j]!='3'){
-						infomationText("False....");
-						
-						BombGameStart=false;
-						break;
-					}else{
-						BombGameInput+=3;
-						j++;
-					}
-				}
-				if (GUI.Button (new Rect (Screen.width* 2/4, Screen.height* 2/ 3 , Screen.width/4, Screen.height/3 ),"4")){
-					if(GameQ[j]!='4'){
-						infomationText("False....");
-						
-						BombGameStart=false;
-						break;
-					}else{
-						BombGameInput+=4;
-						j++;
-					}
-				}*/
+
 				if (j>=4){
 
 					Destroy(TriggerHouse.gameObject,5);
 					Bomb=false;
 					BombGameStart=false;
+					move_flag = false;
 					j=0;
 				}
 				break;
@@ -293,6 +422,7 @@ public class Player : MonoBehaviour {
 					Bomb=false;
 					BombGameStart=false;
 					j=0;
+					move_flag = false;
 				}
 				break;
 			case 2:
@@ -321,6 +451,7 @@ public class Player : MonoBehaviour {
 					Bomb=false;
 					BombGameStart=false;
 					j=0;
+					move_flag = false;
 				}
 				break;
 			case 3:
@@ -348,7 +479,7 @@ public class Player : MonoBehaviour {
 			//Destroy(TriggerHouse.gameObject);
 			Bomb=false;
 		}
-		if ( click==false && Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),ButtonText)){
+		if ( click==false && Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),FunctionButton[Status],guiSkin.customStyles[3])){
 
 			switch (Status){
 			case 0://build a house
@@ -496,7 +627,9 @@ public class Player : MonoBehaviour {
 
 
 	void OnTriggerStay(Collider other){
-
+		point [0] = other.transform.position.x;
+		point [1] = other.transform.position.z;
+		move_flag = true;
 		switch (other.tag)
 		{
 		case "Source":
@@ -544,5 +677,6 @@ public class Player : MonoBehaviour {
 		Bomb=false;
 		PickSource = null;
 		Status = 0;
+		move_flag = false;
 	}
 }

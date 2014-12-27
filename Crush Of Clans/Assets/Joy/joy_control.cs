@@ -16,8 +16,13 @@ public class joy_control : MonoBehaviour {
 	float slide_temp;
 	float test_slide;
 
+	Player Player_script;
+
 	// Use this for initialization
 	void Start () {
+		//取得player.cs資料
+		Player_script = GameObject.Find ("Player").GetComponent<Player>();
+
 		joy_flag = false;
 		joy_pixel = this.guiTexture.pixelInset;
 		start_x = Screen.width * this.transform.position.x + this.guiTexture.pixelInset.x + this.guiTexture.pixelInset.width / 2;
@@ -51,10 +56,25 @@ public class joy_control : MonoBehaviour {
 					//action range
 					if(Mathf.Pow (temp_x - start_pixel_x, 2) + Mathf.Pow(temp_y - start_pixel_y, 2) > Mathf.Pow (r / 2, 2)){
 						float temp =(Mathf.Atan2 (temp_y - start_pixel_y,temp_x - start_pixel_x) * 180 / Mathf.PI + 90) * -1;
+						//Angle
 						GameObject.Find ("Player").transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0, temp, 0);
-					
+						
 						temp = temp * Mathf.PI / 180;
-						GameObject.Find ("Player").transform.Translate (new Vector3 (Mathf.Sin (temp), 0, Mathf.Cos (temp)));
+
+						float start = Mathf.Pow(Mathf.Pow (Player_script.player_temp.x - Player_script.point[0], 2) + Mathf.Pow (Player_script.player_temp.z - Player_script.point[1], 2), 0.5f);
+						float end = Mathf.Pow(Mathf.Pow ((Player_script.player_temp.x - Player_script.move_speed * Mathf.Sin (temp)) - Player_script.point[0], 2) + Mathf.Pow ((Player_script.player_temp.z - Player_script.move_speed * Mathf.Cos(temp)) - Player_script.point[1], 2), 0.5f);
+						float player_x = Player_script.player_temp.x;
+						float player_z = Player_script.player_temp.z;
+						Player_script.player_temp.x += Player_script.move_speed * Mathf.Sin (temp) + Player_script.move_speed * Mathf.Cos (temp);
+						Player_script.player_temp.z -= Player_script.move_speed * Mathf.Sin (temp) - Player_script.move_speed * Mathf.Cos (temp);
+
+						if(Player_script.move_flag){
+							if(end >= start){
+								Player_script.player_temp.x = player_x; 
+								Player_script.player_temp.z = player_z;
+							}	 
+						}
+						GameObject.Find("Player").transform.position = Player_script.player_temp;
 					}
 					break;
 				case TouchPhase.Ended:
