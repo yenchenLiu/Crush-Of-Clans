@@ -29,17 +29,20 @@ public class Player : MonoBehaviour {
 	*/
 	//status
 	public Texture[] FunctionButton;
+	public Texture Bag,Fixed,BombPng,UpGrade;
 	public GUISkin guiSkin;
 	public string PlayerID="000";
 	private float picktime,GameTime,BombTimeCount;
 	public float infoTime;
 	public int tool,cart,toolKind,cartKind,j,w,h;
 	private int Status;//0無狀態可蓋房子、 1採資源、2倉庫、3工作屋、4精煉屋、5裝炸彈 6"UpGrade" 
-	public  int[] source={0,0,0};//0 wood, 1 stone ,2 metal;
-	public  string[] sourceName={"wood","stone","metal"};//0 wood, 1 stone ,2 metal;
+	public  int[] source={0,0,0,0,0,0,0,0};//0 wood, 1 stone ,2 metal;
+	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
+	
+	//public  string[] sourceName={"wood","stone","metal","XX","YY"};//0 wood, 1 stone ,2 metal;
 	public int[] weight = {5,10,50};//0 wood, 1 stone ,2 metal;
 	public int x,y,z;
-	public bool Build=false,click=false,Bomb=false,BombGameStart=false;
+	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false;
 	private Rigidbody BuildNow;
 	private GameObject PickSource,TriggerHouse;
 	public GameObject fire;
@@ -72,7 +75,8 @@ public class Player : MonoBehaviour {
 	public float move_speed = 0.2f;
 	public Vector3 player_temp;
 
-
+	//顯示資料
+	GameObject Trigger_ob;
 	/// ///////////////////
 	
 	//網路用變數
@@ -199,6 +203,7 @@ public class Player : MonoBehaviour {
 			cartLevel[1](手推車搬運等級)
 			這些全部先印出來就好
 		*/
+		bag=false;
 		info = false;
 		weightNow = 0;
 		cart = 0;
@@ -300,26 +305,106 @@ public class Player : MonoBehaviour {
 		infoTime = Time.time;
 	}
 	void OnGUI(){
-
-		/*if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
-			ConnectToServer();
-			Send("10singo");
+		//我這裡先不考慮其他人物存在的情況，因為如果多個角色存在，還會有攝影機的問題
+		//應該要有一個變數來記錄說，如果是其他人物，要把攝影機關掉
+		//依照物件的collider的高度做參考計算位置
+		//所以建議人物、建築、素材的collider先調整好，在依照顯示的位置進行X、Y的微調加減
+		Vector3 worldPosition = new Vector3 (transform.position.x, transform.position.y + collider.bounds.size.y, transform.position.z);
+		Vector2 screenPosition = transform.FindChild ("Main Camera").camera.WorldToScreenPoint (worldPosition);
+		screenPosition.y = Screen.height - screenPosition.y;
+		//字形、顏色、大小，懶的用程式設定，就用一個skin吧
+		//GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),"Player ID", style);
+		GUI.Label(new Rect(screenPosition.x-50,screenPosition.y,100,100),"Player ID",guiSkin.label);
+		
+		if ((Status >= 1 && Status <= 4) || Status == 6) {
+			worldPosition = new Vector3 (Trigger_ob.transform.position.x, Trigger_ob.transform.position.y + Trigger_ob.collider.bounds.size.y, Trigger_ob.transform.position.z);
+			screenPosition = transform.FindChild ("Main Camera").camera.WorldToScreenPoint (worldPosition);
+			screenPosition.y = Screen.height - screenPosition.y;
+			if (Status == 1) {
+				Source data = Trigger_ob.GetComponent<Source> ();
+				GUI.Label (new Rect (screenPosition.x, screenPosition.y, 100, 100), Trigger_ob.name + "\n" + data.quatity,guiSkin.label);
+			} else if (Status == 2) {
+				StockHouse data = Trigger_ob.GetComponent<StockHouse> ();
+				GUI.Label (new Rect (screenPosition.x, screenPosition.y, 100, 100), Trigger_ob.tag + "  " + data.HouseLevel + "\n" + data.PlayerID + "\n" + data.HP,guiSkin.label);
+			} else if (Status == 3) {
+				WorkHouse data = Trigger_ob.GetComponent<WorkHouse>();
+				GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "  " + data.HouseLevel + "\n" + data.PlayerID + "\n" + data.HP,guiSkin.label);
+			} else if (Status == 4) {
+				ScientificHouse data = Trigger_ob.GetComponent<ScientificHouse>();
+				GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "  " + data.HouseLevel + "\n" + data.PlayerID + "\n" + data.HP,guiSkin.label);
+			} else if (Status == 6) {
+				HouseLevelUp data = Trigger_ob.GetComponent<HouseLevelUp>();
+				GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.label);
+			}
 		}
-		if (GUILayout.Button ("Send", GUILayout.Height(50))) {
-			
-			Send("01singo");
-		}*/
 
-		GUI.skin.button.fontSize = 30;
-		GUI.skin.box.fontSize=30;
-		GUI.skin.textArea.fontSize = 30;
+		///Bag/////
+		if (bag == true) {
+			GUI.BeginGroup(new Rect (Screen.width/10, Screen.height/10, Screen.width*4/5, Screen.height*4/5));
+			GUI.Box (new Rect (0,0, Screen.width*4/5, Screen.height*4/5), "", guiSkin.box);
+			GUI.Box (new Rect (Screen.width/10,Screen.height/16, Screen.width*1/5, Screen.width*1/5),Bag, guiSkin.box);
+			//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
+			GUI.Label (new Rect (Screen.width/10+Screen.width*1/20,Screen.height*9/20, Screen.width*1/10, Screen.width*1/5), "採集量："+pick[toolKind], guiSkin.label);
+			GUI.Label (new Rect (Screen.width/10,Screen.height*9/20+Screen.width*1/10, Screen.width*1/5, Screen.width*1/5),"重量:"+weightNow+"/"+package[cart], guiSkin.label);
+			//GUI.Label (new Rect (Screen.width*3/8, Screen.height* 9/ 16 , Screen.width/3, Screen.height/8 ), "", guiSkin.label);
+			
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 1/ 13 , Screen.width/3, Screen.height/16 ),sourceName[0]+":"+ source[0].ToString(),guiSkin.customStyles[4]);
+			
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 2/ 13 , Screen.width/3, Screen.height/16),sourceName[1]+":"+source[1].ToString(),guiSkin.customStyles[4]);
+			
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 3/ 13 , Screen.width/3, Screen.height/16 ),sourceName[2]+":"+source[2].ToString(),guiSkin.customStyles[4]);
+			
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 4/ 13 , Screen.width/3, Screen.height/16 ),sourceName[3]+":"+source[3].ToString(),guiSkin.customStyles[4]);
+			
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 5/ 13 , Screen.width/3, Screen.height/16 ),sourceName[4]+":"+source[4].ToString(),guiSkin.customStyles[4]);
+
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 6/ 13 , Screen.width/3, Screen.height/16),sourceName[5]+":"+source[5].ToString(),guiSkin.customStyles[4]);
+			
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 7/ 13, Screen.width/3, Screen.height/16 ),sourceName[6]+":"+source[6].ToString(),guiSkin.customStyles[4]);
+			
+			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 8/ 13 , Screen.width/3, Screen.height/16 ),sourceName[7]+":"+source[7].ToString(),guiSkin.customStyles[4]);
+			
+
+
+
+
+			/*GUI.Box (new Rect (Screen.width*3/8, Screen.height* 1/ 16 , Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
+
+			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 3/ 16 , Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
+
+			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 5/ 16 , Screen.height/16 , Screen.height/16),Bag,guiSkin.customStyles[2]);
+
+			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 7/ 16 ,Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
+
+			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 9/ 16 ,Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);*/
+
+
+
+
+			if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
+				bag = false;
+				click=false;
+			}
+			GUI.EndGroup();
+
+		
+		}
+
+		///Bag/////
+
+		//INFOMATION///////////
 		if (info == true) {
-			GUI.Box (new Rect (Screen.width*1/3, Screen.height/5, Screen.width/3, Screen.height / 10),infotext,guiSkin.box);
+			GUI.Box (new Rect (0, Screen.height/2-Screen.height / 20, Screen.width, Screen.height / 10),infotext,guiSkin.box);
 			if((int)(Time.time-infoTime)==1){
 				info=false;
 			}
 		}
-		GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height / 10),"");
+		//INFOMATION///////////
+
+
+
+
+		/*GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height / 10),"");
 
 		GUI.Box (new Rect ( 0, 0, Screen.width/8, Screen.height / 10),"Wood");
 		GUI.Box (new Rect ( Screen.width/8, 0, Screen.width/8, Screen.height / 10),source[0].ToString());
@@ -332,7 +417,11 @@ public class Player : MonoBehaviour {
 		GUI.Box (new Rect ( 7*Screen.width/8, 0, Screen.width/8, Screen.height / 10),weightNow.ToString());
 		GUI.Box (new Rect ( 0, Screen.height / 10, Screen.width/8, Screen.height / 10),toolName[tool]+pick[toolKind].ToString());
 		GUI.Box (new Rect ( 0, Screen.height *2/ 10, Screen.width/8, Screen.height / 10),cartName[cart]+package[cart].ToString());
-		string ButtonText;
+		*/
+
+		/*string ButtonText;
+
+
 		if (Time.time - picktime < CDtime[toolKind] && Status==1) {
 			GUI.enabled=false;
 			ButtonText =StatusName[Status]+"\r\n"+ ((int)(CDtime [tool] - (Time.time - picktime))).ToString ();
@@ -340,8 +429,9 @@ public class Player : MonoBehaviour {
 		} 
 		else {
 			ButtonText=StatusName[Status];
-		}
+		}*/
 
+		///BOMB//////////
 		if (5 - (int)(Time.time - BombTimeCount) >= 1) {
 			infomationText(((int)(5-(Time.time-BombTimeCount))).ToString());
 					
@@ -479,68 +569,74 @@ public class Player : MonoBehaviour {
 			//Destroy(TriggerHouse.gameObject);
 			Bomb=false;
 		}
-		if ( click==false && Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),FunctionButton[Status],guiSkin.customStyles[3])){
+		///BOMB//////////
 
-			switch (Status){
-			case 0://build a house
 
-				Build = true;
-				click=false;
-				break;
-			case 1:			
-				//採集放這邊
-				//source++;
-				if(Time.time-picktime>CDtime[toolKind] && weightNow < package[cart]){
-					Source pickup=PickSource.GetComponent<Source>();					
-					int kind=pickup.kind;
-					if(tool==0||kind+1==tool ){
-						int quatity=pickup.quatity;
-						int sourceWeight=weight[kind];
-						int getQutity;
-						print (quatity);
-						if(quatity<=pick[toolKind]){
-							if(package[cart]-weightNow-(quatity*sourceWeight)<0){
-								getQutity = (package[cart]-weightNow)/sourceWeight;
-								source[kind]+=getQutity;
-								pickup.quatity-=getQutity;
-								//weightNow+=getQutity*sourceWeight;
-							}else{
-								getQutity=quatity;
+		///FuctionButton/////
+		if (click == false) {//hide FuctionButton
+			if (Build==false && GUI.Button (new Rect (Screen.width-Screen.width/8, Screen.height* 3 / 4-Screen.height/5 , Screen.width/10, Screen.height/6 ),Bag,guiSkin.customStyles[3])){
+				bag=true;
+				click=true;
+			}
+			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),FunctionButton[Status],guiSkin.customStyles[3])){
+				
+				switch (Status){
+				case 0://build a house
+					
+					Build = true;
+					click=false;
+					break;
+				case 1:			
+					//採集放這邊
+					//source++;
+					if(Time.time-picktime>CDtime[toolKind] && weightNow < package[cart]){
+						Source pickup=PickSource.GetComponent<Source>();					
+						int kind=pickup.kind;
+						if(tool==0||kind+1==tool ){
+							int quatity=pickup.quatity;
+							int sourceWeight=weight[kind];
+							int getQutity;
+							print (quatity);
+							if(quatity<=pick[toolKind]){
+								if(package[cart]-weightNow-(quatity*sourceWeight)<0){
+									getQutity = (package[cart]-weightNow)/sourceWeight;
+									source[kind]+=getQutity;
+									pickup.quatity-=getQutity;
+									//weightNow+=getQutity*sourceWeight;
+								}else{
+									getQutity=quatity;
 									
-								source[kind]+=quatity;
-								pickup.quatity-=quatity;
-								//weightNow+=quatity*sourceWeight;
-								//資料庫
-								/*
+									source[kind]+=quatity;
+									pickup.quatity-=quatity;
+									//weightNow+=quatity*sourceWeight;
+									//資料庫
+									/*
 								DELETE Source
 								Key: x=pickup.x , z=pickup.z
 								*/
-								Destroy(PickSource.gameObject);
-								
-							}
-							
-						}else{
-							if(package[cart]-weightNow-(pick[toolKind]*sourceWeight)<0){
-								getQutity = (package[cart]-weightNow)/sourceWeight;
-								source[kind]+=getQutity;
-								pickup.quatity-=getQutity;
-								//weightNow+=getQutity*sourceWeight;
+									Destroy(PickSource.gameObject);
+									
+								}
 								
 							}else{
-								getQutity=pick[toolKind];
-								source[kind]+=pick[toolKind];
-								pickup.quatity-=pick[toolKind];
-							//	weightNow+=pick[tool]*sourceWeight;
-								
+								if(package[cart]-weightNow-(pick[toolKind]*sourceWeight)<0){
+									getQutity = (package[cart]-weightNow)/sourceWeight;
+									source[kind]+=getQutity;
+									pickup.quatity-=getQutity;
+									//weightNow+=getQutity*sourceWeight;
+									
+								}else{
+									getQutity=pick[toolKind];
+									source[kind]+=pick[toolKind];
+									pickup.quatity-=pick[toolKind];
+									//	weightNow+=pick[tool]*sourceWeight;
+									
+								}
 							}
-						}
-						infomationText("Get "+getQutity.ToString()+" "+sourceName[kind]+"s !");
-						//infotext=sourceName[kind]+":"+getQutity.ToString();
-						//info=true;
-						//infoTime=Time.time;
-						print ("wood: "+source[0]+" Stone: "+source[1]+"Weight:"+weightNow);
-						////////資料庫
-						/*
+							infomationText("Get "+getQutity.ToString()+" "+sourceName[kind]+"s !");
+
+							////////資料庫
+							/*
 						UPDATE Player
 						key: PlayerID
 						欄位：
@@ -554,44 +650,61 @@ public class Player : MonoBehaviour {
 						quatity=pickup.quatity;
 
 						*/
-						picktime=Time.time;
+							picktime=Time.time;
+						}
 					}
-				}
-				Status=0;
-				break;
-			case 2:
-				//倉庫放這邊
-				StockHouse StockNow = TriggerHouse.GetComponent<StockHouse>();
-				StockNow.work=true;
-				click=true;
-				break;
-			case 3:
-				WorkHouse WorkNow = TriggerHouse.GetComponent<WorkHouse>();
-				WorkNow.work=true;
-				click=true;
-				//合成放這邊				
-				break;
-			case 4:
-				ScientificHouse ScienceNow = TriggerHouse.GetComponent<ScientificHouse>();
-				ScienceNow.work=true;
-				click=true;
-				//精煉放這邊	
-				break;
-			case 5:
-				//裝炸彈放這邊
-				break;
-			case 6:
-				HouseLevelUp HouseNow = TriggerHouse.GetComponent<HouseLevelUp>();
-				HouseNow.work=true;
-				click=true;
+					Status=0;
+					break;
+				case 2:
+					//倉庫放這邊
+					StockHouse StockNow = TriggerHouse.GetComponent<StockHouse>();
+					StockNow.work=true;
+					click=true;
+					break;
+				case 3:
+					WorkHouse WorkNow = TriggerHouse.GetComponent<WorkHouse>();
+					WorkNow.work=true;
+					click=true;
+					//合成放這邊				
+					break;
+				case 4:
+					ScientificHouse ScienceNow = TriggerHouse.GetComponent<ScientificHouse>();
+					ScienceNow.work=true;
+					click=true;
+					//精煉放這邊	
+					break;
+				case 5:
+					//裝炸彈放這邊
+					break;
+				case 6:
+					HouseLevelUp HouseNow = TriggerHouse.GetComponent<HouseLevelUp>();
+					HouseNow.work=true;
+					click=true;
+					
+					break;
+				}	
+				
+			}
+			if(Status==0||Status==1){
+				GUI.enabled=false;//buttonEnable=false;
+			}else{
+				GUI.enabled=true;
+			}
+			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width/10, Screen.height-Screen.height/5 , Screen.width/10, Screen.height/6 ),UpGrade,guiSkin.customStyles[3])){
+			
+			}
+			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width*2/10, Screen.height-Screen.height/5, Screen.width/10, Screen.height/6 ),Fixed,guiSkin.customStyles[3])){
+			
+			}
+			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width*3/10, Screen.height-Screen.height/5, Screen.width/10, Screen.height/6 ),BombPng,guiSkin.customStyles[3])){
+			
+			}
+		}//end of click
+		///FuctionButton/////
 
-				break;
-			}	
-		
-		}
-		//放大縮小
-		//view = GUILayout.VerticalSlider ((float)view, (float)100.0, (float)30.0);
 
+		///Build/////
+		GUI.enabled = true;
 		if (Build == true) {
 			// 蓋房子放這邊
 			GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height),"");
@@ -622,7 +735,8 @@ public class Player : MonoBehaviour {
 
 		}
 
-
+		///Build/////
+		/// 
 	}
 
 
@@ -630,6 +744,8 @@ public class Player : MonoBehaviour {
 		point [0] = other.transform.position.x;
 		point [1] = other.transform.position.z;
 		move_flag = true;
+		Trigger_ob = other.gameObject;
+
 		switch (other.tag)
 		{
 		case "Source":

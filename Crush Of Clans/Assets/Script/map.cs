@@ -67,6 +67,7 @@ public class map : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		//print (Time.time - starttime);
+		/*
 		if ( (int)(Time.time - starttime )% 10 == 0 ) {
 			GameObject[] temp = GameObject.FindGameObjectsWithTag("Source");
 
@@ -85,6 +86,6 @@ public class map : MonoBehaviour {
 			//	}
 
 			}	
-		}
+		}*/
 	}
 }
