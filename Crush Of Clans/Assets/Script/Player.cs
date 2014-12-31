@@ -27,6 +27,9 @@ public class Player : MonoBehaviour {
 	cartLevel[0](手動搬運等級)
 	cartLevel[1](手推車搬運等級)
 	*/
+	public Texture startButton;
+	private bool login,wrong;
+	private string id,password;
 	//status
 	public Texture[] FunctionButton;
 	public Texture Bag,Fixed,BombPng,UpGrade,Black;
@@ -41,9 +44,9 @@ public class Player : MonoBehaviour {
 	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
 	
 	//public  string[] sourceName={"wood","stone","metal","XX","YY"};//0 wood, 1 stone ,2 metal;
-	public int[] weight = {5,10,50};//0 wood, 1 stone ,2 metal;
+	public int[] weight;// = {5,10,50};//0 wood, 1 stone ,2 metal;
 	public int x,y,z;
-	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,DataLoad=false;
+	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,DataLoad=false,GetPosition=false;
 	private Rigidbody BuildNow;
 	private GameObject PickSource,TriggerHouse,DestroyHouse;
 	public GameObject fire,Building,GetStone,GetWood;
@@ -67,8 +70,7 @@ public class Player : MonoBehaviour {
 	public int[] package;// = {1000,2000};
 	private int[] CDtime = {5,4,3,2};
 	public int weightNow;
-	public string serverIP="107.167.178.99";//"107.167.178.99";
-	public string serverPORT="25565";
+
 	
 	//控制移動
 	public bool move_flag = false;
@@ -82,34 +84,11 @@ public class Player : MonoBehaviour {
 	
 	//網路用變數
 	//Socket: 網路溝通, Thread: 網路監聽
-	public Socket clientSocket;
-	Thread th_Listen;
-	public bool chkThread=true;//Thread Received
-	string findThisString = "@@@@@";//chkstring
-	int chkCommand = 0;//chk value != -1 is OK
+
+
 	
 	
-	private bool ConnectToServer() {
-		IPEndPoint ServerEP = new IPEndPoint(IPAddress.Parse(serverIP), int.Parse(serverPORT));
-		clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-		try
-		{
-			clientSocket.Connect(ServerEP);
-			th_Listen = new Thread(new ThreadStart(Listen));
-			th_Listen.Start();
-			Thread.Sleep(200);
-			infomationText("Already connect to the Server!");
-			print("Already connect to the Server!");
-			return true;
-			
-		}
-		catch (Exception ex) {
-			infomationText("Can't connect to the Server!");
-			
-			print("Can't connect to the Server!");
-			return false;
-		}
-	}
+
 	
 	public void Send(string strSend)
 	{
@@ -118,114 +97,36 @@ public class Player : MonoBehaviour {
 		try
 		{
 			byteSend = Encoding.UTF8.GetBytes(strSend);
-			clientSocket.Send (byteSend);  
+			State.clientSocket.Send (byteSend);  
 		}
 		catch (Exception ex)
 		{
-			infomationText("Connection Break!");
 			
 			print(" Connection Break!");
 		}
 	}
 	
 	//監聽 Server 訊息 (Listening to the Server)
-	private void Listen() {
-		EndPoint ClientEP = clientSocket.RemoteEndPoint;
-		//接收要用的 Byte Array
-		Byte[] byteLoad = new byte[1024];
-		int loadLen;
-		
-		String strAll;    //接收到的完整訊息strAll=strCase+strInfo
-		String strCase;  //命令碼: 00 ~ 99 (前兩碼)
-		String strInfo;     //真正傳達的訊息
-		while(chkThread)
-		{
-			try
-			{
-				
-				loadLen = clientSocket.ReceiveFrom(byteLoad, 0, byteLoad.Length, SocketFlags.None, ref ClientEP);
 
-				if (loadLen != 0) {
-					strAll = Encoding.UTF8.GetString (byteLoad, 0, loadLen);
-					print (strAll);
-					strCase = strAll.Substring(0, 2);
-					switch (strCase) {
-					case "21"://Server Send 01PlayID
-						strInfo = strAll.Substring(2);
-						string[] com21= strInfo.Split(new string[] { "@@@@@" }, StringSplitOptions.RemoveEmptyEntries);
-						infomationText(com21[com21.Length-1]);
-						print (com21[com21.Length-1]);
-						PlayerID=com21[com21.Length-1];
-						break;
-						
-					case "10"://If Client Login Success 
-						strInfo = strAll.Substring(2);
-						chkCommand = strInfo.IndexOf(findThisString);
-						if(chkCommand!=-1){
-							infomationText("Login Success!!");
-							
-							print("Login Success!!");
-							print(PlayerID);
-						}
-						break;
-					case "20":
-						strInfo = strAll.Substring(2);
-						string[] com20= strInfo.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-						PlayerID=com20[1];
-						break;
-					case "11"://If Client Login Failed
-						infomationText("Login Error!!");
-						
-						print("Login Error!!");
-						break;
-					case "22":
-						strInfo=strAll.Substring(2);
-						string[] strs= strInfo.Split(new string[] { "@@@@@" }, StringSplitOptions.RemoveEmptyEntries);
-						string[] strxy=strs[0].Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-						print (strxy[0]);
-						print (strxy[1]);
-						x=int.Parse(strxy[0]);
-						z=int.Parse(strxy[1]);
-						PosX=int.Parse(strxy[0]);
-						PosZ=int.Parse(strxy[1]);
-						break;
-					case "23":
-						strInfo=strAll.Substring(2);
-						string[] strsource= strInfo.Split(new string[] { "@@@@@" }, StringSplitOptions.RemoveEmptyEntries);
-						string[] strsources=strsource[0].Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-						infomationText(strsources[1]);
-						
-						print (strsources[1]);
-						source[0]=int.Parse (strsources[1]);//0 wood, 1 stone ,2 metal;
-						break;
-					case "er"://If Client Send Message length < 2 , Server can send "er"
-						print ("command Error!!");
-						break;
-						
-					default:
-						break;
-					}
-				}
-				
-			}
-			catch (Exception ex)//產生錯誤時
-			{
-				print (ex);
-				clientSocket.Close();//關閉通訊器
-				
-				print("伺服器斷線了！");//顯示斷線
-				
-				th_Listen.Abort();//刪除執行緒
-			}
-		} 
-	}
 	
 	
 	
 	/// ///////////////////
 	
 	// Use this for initialization
+
 	void Start () {
+		GetPosition = false;
+		//ConnectToServer();
+		Send("10singo,singo@@@@@");
+		Send("21@@@@@");
+		Send("22@@@@@");
+		Send("23@@@@@");
+		//yield return new WaitForSeconds(2);
+		//this.transform.position.z =;
+
+		//this.transform.position=new Vector3 (State.PosX,1.5f, State.PosZ);
+		
 		Process = 10;
 		////////資料庫
 		/*SELECT Player
@@ -246,6 +147,10 @@ public class Player : MonoBehaviour {
 			cartLevel[1](手推車搬運等級)
 			這些全部先印出來就好
 		*/
+		wrong = false;
+		login = false;
+		id = "ID";
+		password = "Password";
 		DataLoad = true;
 		bag=false;
 		info = false;
@@ -259,10 +164,16 @@ public class Player : MonoBehaviour {
 		picktime=Time.time-5;
 		BombTimeCount = Time.time - 6;
 		BombGameStart = false;
+
 	}
 	
 	// Update is called once per frame
 	void Update () {
+
+		if (Trigger_ob == null) {
+			Status=0;
+			move_flag=false;
+		}
 		if (DataLoad == false) {
 						Process = (int)(Time.time - picktime) - 5;
 						print (Process);
@@ -346,7 +257,7 @@ public class Player : MonoBehaviour {
 		this.transform.position = player_temp;
 		
 		
-		
+
 	}
 	
 	//Status = 0 虛擬搖桿 移動
@@ -361,35 +272,40 @@ public class Player : MonoBehaviour {
 			GUI.Box (new Rect (0, Screen.height/2-Screen.height / 20, Screen.width, Screen.height / 10),infotext,guiSkin.box);
 			if((int)(Time.time-infoTime)==1){
 				info=false;
+
 			}
 		}
 		//INFOMATION///////////
 
 		if (DataLoad == false) {
 
+ 			
 			GUI.Box (new Rect (0, 0, Screen.width, Screen.height), "", guiSkin.customStyles [0]);
-			GUI.Label(new Rect (0-Screen.width+(Screen.width*Process/10), Screen.height*4/5, (Screen.width) , Screen.height/20),"    ",guiSkin.button);
-			
-		} else{
+			//GUI.Label(new Rect (0-Screen.width+(Screen.width*Process/10), Screen.height*4/5, (Screen.width) , Screen.height/20),"    ",guiSkin.button);
+
+
+
+
+
+		} else{ //DataLoad
 			
 		
 		if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
-			ConnectToServer();
+			Server.ConnectToServer();
 			Send("10singo,singo@@@@@");
 		}
 		if (GUILayout.Button ("Send", GUILayout.Height(50))) {
 			
 			Send("21@@@@@");
-			//Send("22@@@@@");
+			Send("22@@@@@");
 			Send("23@@@@@");
 		}
 		if(GUILayout.Button("Close")){
-			clientSocket.Close();//關閉通訊器
+			State.clientSocket.Close();//關閉通訊器
 				infomationText("伺服器斷線了！");
 			print("伺服器斷線了！");//顯示斷線
 			
-			th_Listen.Abort();//刪除執行緒
-			chkThread=false;
+			State.chkThread=false;
 		}
 		
 		
@@ -840,12 +756,11 @@ public class Player : MonoBehaviour {
 	
 	void OnApplicationQuit ()
 	{
-		clientSocket.Close();//關閉通訊器
+		State.clientSocket.Close();//關閉通訊器
 		
 		print("伺服器斷線了！");//顯示斷線
-		
-		th_Listen.Abort();//刪除執行緒
-		chkThread=false;
+
+		State.chkThread=false;
 	}
 	
 	
@@ -853,9 +768,7 @@ public class Player : MonoBehaviour {
 	void OnTriggerStay(Collider other){
 		point [0] = other.transform.position.x;
 		point [1] = other.transform.position.z;
-		if (other.tag == "Work" || other.tag == "House" || other.tag == "Stock" || other.tag == "Science" || other.tag != "Source") {
 						move_flag = true;
-				}
 		Trigger_ob = other.gameObject;
 		
 		switch (other.tag)

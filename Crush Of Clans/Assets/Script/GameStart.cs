@@ -11,14 +11,40 @@ public class GameStart : MonoBehaviour {
 
 		wrong = false;
 		login = false;
-		id = "ID";
-		password = "Password";
+		id = "Singo";
+		password = "Singo";
 
 	}
 	
 	// Update is called once per frame
 	void Update () {
 	
+	}
+	IEnumerator login_function(){
+		print ("test");
+		Server.ConnectToServer();
+		Server.Send("10"+id+","+password+"@@@@@");
+
+		yield return new WaitForSeconds(3);
+		print ("test2");
+		Server.Send("21@@@@@");
+		
+		if(State.LoginSuecess){
+
+			PlayerPrefs.SetString ("id",id);
+			//CONNECT SERVER
+			//PlayerPrefs.SetString ("password",password);
+			print ("Connect Sucesses!");
+			Application.LoadLevel("MainScene");
+			//return true;
+		}else{
+			wrong=true;
+			login=false;
+
+			//GUI.Box (new Rect (Screen.width / 2 - (Screen.width / 6), Screen.height / 2 - (Screen.height / 6), Screen.width / 3, Screen.height / 3), "帳號或密碼錯誤",guiSkin.box);
+			//return false;
+			
+		}
 	}
 	void OnGUI(){
 		
@@ -41,19 +67,15 @@ public class GameStart : MonoBehaviour {
 				login = false;
 			}
 			if (GUI.Button (new Rect (Screen.width*1/2-Screen.width*1/8, Screen.height*2/3-Screen.height*1/30, Screen.width*1/4, Screen.height*1/10),"確認",guiSkin.button)) {
-				if(id=="1234" && password=="5678"){
-					print ("Connect Sucesses!");
-					PlayerPrefs.SetString ("id",id);
-					//CONNECT SERVER
-					//PlayerPrefs.SetString ("password",password);
-					Application.LoadLevel("MainScene");
-				}else{
-					wrong=true;
-					login=false;
+				print ("123");
+				StartCoroutine("login_function");
+				print ("456");
+				if(State.LoginSuecess){
+
+
+				}
+				else{
 					print ("Connect False!");
-					GUI.Box (new Rect (Screen.width / 2 - (Screen.width / 6), Screen.height / 2 - (Screen.height / 6), Screen.width / 3, Screen.height / 3), "帳號或密碼錯誤",guiSkin.box);
-					
-					
 				}
 
 			}
