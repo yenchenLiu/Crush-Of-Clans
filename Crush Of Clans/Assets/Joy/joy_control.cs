@@ -18,6 +18,10 @@ public class joy_control : MonoBehaviour {
 
 	Player Player_script;
 
+	GameObject Player_ob;
+	Vector3[] Player_start_position = new Vector3[2];
+	Quaternion[] Player_start_rotation = new Quaternion[2];
+
 	// Use this for initialization
 	void Start () {
 		//取得player.cs資料
@@ -32,6 +36,14 @@ public class joy_control : MonoBehaviour {
 		r = (this.transform.FindChild("joy_back").guiTexture.pixelInset.width - this.guiTexture.pixelInset.width) / 2;
 
 		test_slide = 0;
+
+		Player_ob = GameObject.Find ("Player").transform.FindChild ("People").gameObject;
+		Player_ob.animation ["Take 001"].speed *= 4;
+		Player_ob.animation.Stop ();
+		Player_start_position [0] = Player_ob.transform.FindChild ("ChamferCyl001").transform.localPosition;
+		Player_start_position [1] = Player_ob.transform.FindChild ("ChamferCyl002").transform.localPosition;
+		Player_start_rotation [0] = Player_ob.transform.FindChild ("ChamferCyl001").transform.localRotation;
+		Player_start_rotation [1] = Player_ob.transform.FindChild ("ChamferCyl002").transform.localRotation;
 	}
 	
 	// Update is called once per frame
@@ -40,6 +52,7 @@ public class joy_control : MonoBehaviour {
 		if (Input.touchCount == 1 && joy_flag) {
 			switch(Input.GetTouch(0).phase){
 				case TouchPhase.Moved:
+				case TouchPhase.Stationary:
 					float temp_x = start_pixel_x + (Input.GetTouch(0).position.x - start_x);
 					float temp_y = start_pixel_y + (Input.GetTouch(0).position.y - start_y);
 					
@@ -76,11 +89,17 @@ public class joy_control : MonoBehaviour {
 						}
 						GameObject.Find("Player").transform.position = Player_script.player_temp;
 					}
+					Player_ob.animation.Play();
 					break;
 				case TouchPhase.Ended:
 					//restart
 					this.guiTexture.pixelInset = joy_pixel;
 					joy_flag =false;
+					Player_ob.animation.Stop();
+					Player_ob.transform.FindChild ("ChamferCyl001").transform.localPosition = Player_start_position [0];
+					Player_ob.transform.FindChild ("ChamferCyl002").transform.localPosition = Player_start_position [1];
+					Player_ob.transform.FindChild ("ChamferCyl001").transform.localRotation = Player_start_rotation [0];
+					Player_ob.transform.FindChild ("ChamferCyl002").transform.localRotation = Player_start_rotation [1];
 					break;
 			}
 		}

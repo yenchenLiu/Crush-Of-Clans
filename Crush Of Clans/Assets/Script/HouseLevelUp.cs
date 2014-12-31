@@ -12,6 +12,7 @@ public class HouseLevelUp : MonoBehaviour {
 	*/
 	//private int x, z;
 	public GUISkin guiSkin;
+	public GameObject Building;
 	public Texture[] housePng; 
 	public int[,] needSource = {{20,10,0,0,0,0,0,0},{200,10,5,0,0,0,0,0},{50,20,10,0,0,0,0,0}};
 	private string[] HouseName = {"倉庫","工作屋","精煉屋"};
@@ -126,6 +127,9 @@ public class HouseLevelUp : MonoBehaviour {
 					work=false;
 					break;
 				}
+				Vector3 Pos=new Vector3(buildNow.gameObject.transform.position.x-1,buildNow.gameObject.transform.position.y+5,buildNow.gameObject.transform.position.z+1);
+				GameObject animateNow=(GameObject) Instantiate(Building,Pos,Building.transform.rotation);
+				Destroy(animateNow,3);
 
 			}
 				GUI.enabled=true;

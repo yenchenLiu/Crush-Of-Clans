@@ -1,12 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
-/*using System.Net.Sockets;
+using System.Net.Sockets;
 using System.Net;
 using System;
 using System.IO;
 using System.Text;
-using System.Threading;*/
-
+using System.Threading;
+using System.Text.RegularExpressions;
 public class Player : MonoBehaviour {
 	//資料庫
 	/*
@@ -29,27 +29,28 @@ public class Player : MonoBehaviour {
 	*/
 	//status
 	public Texture[] FunctionButton;
-	public Texture Bag,Fixed,BombPng,UpGrade;
+	public Texture Bag,Fixed,BombPng,UpGrade,Black;
 	public GUISkin guiSkin;
 	public string PlayerID="000";
+	public float PosX ,PosZ;
 	private float picktime,GameTime,BombTimeCount;
 	public float infoTime;
 	public int tool,cart,toolKind,cartKind,j,w,h;
-	private int Status;//0無狀態可蓋房子、 1採資源、2倉庫、3工作屋、4精煉屋、5裝炸彈 6"UpGrade" 
-	public  int[] source={0,0,0,0,0,0,0,0};//0 wood, 1 stone ,2 metal;
+	private int Status,Process;//0無狀態可蓋房子、 1採資源、2倉庫、3工作屋、4精煉屋、5裝炸彈 6"UpGrade" 
+	public  int[] source;//={0,0,0,0,0,0,0,0};//0 wood, 1 stone ,2 metal;
 	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
 	
 	//public  string[] sourceName={"wood","stone","metal","XX","YY"};//0 wood, 1 stone ,2 metal;
 	public int[] weight = {5,10,50};//0 wood, 1 stone ,2 metal;
 	public int x,y,z;
-	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false;
+	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,DataLoad=false;
 	private Rigidbody BuildNow;
-	private GameObject PickSource,TriggerHouse;
-	public GameObject fire;
+	private GameObject PickSource,TriggerHouse,DestroyHouse;
+	public GameObject fire,Building,GetStone,GetWood;
 	public Rigidbody build_house;
 	public bool info;
 	public string infotext;
-
+	
 	//attribute
 	private char[] BombGame={'1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','I','M','N','O','P'};
 	private char[] GameQ = {'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x'};
@@ -63,26 +64,29 @@ public class Player : MonoBehaviour {
 	private string[] toolName={"手","十字鎬","斧頭","炸彈"};
 	private string[] cartName={"手","推車"};
 	private float view;
-	public int[] package = {1000,2000};
+	public int[] package;// = {1000,2000};
 	private int[] CDtime = {5,4,3,2};
 	public int weightNow;
 	public string serverIP="107.167.178.99";//"107.167.178.99";
 	public string serverPORT="25565";
-
+	
 	//控制移動
 	public bool move_flag = false;
 	public float[] point = new float[2];
 	public float move_speed = 0.2f;
 	public Vector3 player_temp;
-
+	
 	//顯示資料
 	GameObject Trigger_ob;
 	/// ///////////////////
 	
 	//網路用變數
 	//Socket: 網路溝通, Thread: 網路監聽
-	/*public Socket clientSocket;
+	public Socket clientSocket;
 	Thread th_Listen;
+	public bool chkThread=true;//Thread Received
+	string findThisString = "@@@@@";//chkstring
+	int chkCommand = 0;//chk value != -1 is OK
 	
 	
 	private bool ConnectToServer() {
@@ -94,11 +98,14 @@ public class Player : MonoBehaviour {
 			th_Listen = new Thread(new ThreadStart(Listen));
 			th_Listen.Start();
 			Thread.Sleep(200);
+			infomationText("Already connect to the Server!");
 			print("Already connect to the Server!");
 			return true;
 			
 		}
 		catch (Exception ex) {
+			infomationText("Can't connect to the Server!");
+			
 			print("Can't connect to the Server!");
 			return false;
 		}
@@ -115,6 +122,8 @@ public class Player : MonoBehaviour {
 		}
 		catch (Exception ex)
 		{
+			infomationText("Connection Break!");
+			
 			print(" Connection Break!");
 		}
 	}
@@ -129,12 +138,13 @@ public class Player : MonoBehaviour {
 		String strAll;    //接收到的完整訊息strAll=strCase+strInfo
 		String strCase;  //命令碼: 00 ~ 99 (前兩碼)
 		String strInfo;     //真正傳達的訊息
-		while(true)
+		while(chkThread)
 		{
 			try
 			{
 				
 				loadLen = clientSocket.ReceiveFrom(byteLoad, 0, byteLoad.Length, SocketFlags.None, ref ClientEP);
+
 				if (loadLen != 0) {
 					strAll = Encoding.UTF8.GetString (byteLoad, 0, loadLen);
 					print (strAll);
@@ -142,20 +152,52 @@ public class Player : MonoBehaviour {
 					switch (strCase) {
 					case "21"://Server Send 01PlayID
 						strInfo = strAll.Substring(2);
-						PlayerID=strInfo;
+						string[] com21= strInfo.Split(new string[] { "@@@@@" }, StringSplitOptions.RemoveEmptyEntries);
+						infomationText(com21[com21.Length-1]);
+						print (com21[com21.Length-1]);
+						PlayerID=com21[com21.Length-1];
 						break;
 						
 					case "10"://If Client Login Success 
 						strInfo = strAll.Substring(2);
-						PlayerID=strInfo;
-						print("Login Success!!");
-						print(PlayerID);
+						chkCommand = strInfo.IndexOf(findThisString);
+						if(chkCommand!=-1){
+							infomationText("Login Success!!");
+							
+							print("Login Success!!");
+							print(PlayerID);
+						}
 						break;
-						
+					case "20":
+						strInfo = strAll.Substring(2);
+						string[] com20= strInfo.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+						PlayerID=com20[1];
+						break;
 					case "11"://If Client Login Failed
+						infomationText("Login Error!!");
+						
 						print("Login Error!!");
 						break;
+					case "22":
+						strInfo=strAll.Substring(2);
+						string[] strs= strInfo.Split(new string[] { "@@@@@" }, StringSplitOptions.RemoveEmptyEntries);
+						string[] strxy=strs[0].Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+						print (strxy[0]);
+						print (strxy[1]);
+						x=int.Parse(strxy[0]);
+						z=int.Parse(strxy[1]);
+						PosX=int.Parse(strxy[0]);
+						PosZ=int.Parse(strxy[1]);
+						break;
+					case "23":
+						strInfo=strAll.Substring(2);
+						string[] strsource= strInfo.Split(new string[] { "@@@@@" }, StringSplitOptions.RemoveEmptyEntries);
+						string[] strsources=strsource[0].Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+						infomationText(strsources[1]);
 						
+						print (strsources[1]);
+						source[0]=int.Parse (strsources[1]);//0 wood, 1 stone ,2 metal;
+						break;
 					case "er"://If Client Send Message length < 2 , Server can send "er"
 						print ("command Error!!");
 						break;
@@ -166,8 +208,9 @@ public class Player : MonoBehaviour {
 				}
 				
 			}
-			catch (Exception)//產生錯誤時
+			catch (Exception ex)//產生錯誤時
 			{
+				print (ex);
 				clientSocket.Close();//關閉通訊器
 				
 				print("伺服器斷線了！");//顯示斷線
@@ -176,14 +219,14 @@ public class Player : MonoBehaviour {
 			}
 		} 
 	}
-
-
-	*/
+	
+	
+	
 	/// ///////////////////
-
+	
 	// Use this for initialization
 	void Start () {
-
+		Process = 10;
 		////////資料庫
 		/*SELECT Player
 			key: PlayerID
@@ -203,6 +246,7 @@ public class Player : MonoBehaviour {
 			cartLevel[1](手推車搬運等級)
 			這些全部先印出來就好
 		*/
+		DataLoad = true;
 		bag=false;
 		info = false;
 		weightNow = 0;
@@ -219,13 +263,20 @@ public class Player : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-				weightNow = (source [0] * weight [0])+(source [1] * weight [1]) + (source [2] * weight [2]);
-				x = (int)this.transform.position.x;
-				y = (int)this.transform.position.y;
-				z = (int)this.transform.position.z;
-				//this.transform.FindChild ("Main Camera").camera.fieldOfView = view;
-				////////資料庫
-				/*UPDATE Player
+		if (DataLoad == false) {
+						Process = (int)(Time.time - picktime) - 5;
+						print (Process);
+						if (Process >= 10) {
+								DataLoad = true;	
+						}
+				}
+		weightNow = (source [0] * weight [0])+(source [1] * weight [1]) + (source [2] * weight [2]);
+		x = (int)this.transform.position.x;
+		y = (int)this.transform.position.y;
+		z = (int)this.transform.position.z;
+		//this.transform.FindChild ("Main Camera").camera.fieldOfView = view;
+		////////資料庫
+		/*UPDATE Player
 					key: PlayerID
 					欄位：
 					x(x座標)
@@ -294,10 +345,10 @@ public class Player : MonoBehaviour {
 		}
 		this.transform.position = player_temp;
 		
-
-
+		
+		
 	}
-
+	
 	//Status = 0 虛擬搖桿 移動
 	public void infomationText(string text){
 		infotext = text;
@@ -305,6 +356,43 @@ public class Player : MonoBehaviour {
 		infoTime = Time.time;
 	}
 	void OnGUI(){
+		//INFOMATION///////////
+		if (info == true) {
+			GUI.Box (new Rect (0, Screen.height/2-Screen.height / 20, Screen.width, Screen.height / 10),infotext,guiSkin.box);
+			if((int)(Time.time-infoTime)==1){
+				info=false;
+			}
+		}
+		//INFOMATION///////////
+
+		if (DataLoad == false) {
+
+			GUI.Box (new Rect (0, 0, Screen.width, Screen.height), "", guiSkin.customStyles [0]);
+			GUI.Label(new Rect (0-Screen.width+(Screen.width*Process/10), Screen.height*4/5, (Screen.width) , Screen.height/20),"    ",guiSkin.button);
+			
+		} else{
+			
+		
+		if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
+			ConnectToServer();
+			Send("10singo,singo@@@@@");
+		}
+		if (GUILayout.Button ("Send", GUILayout.Height(50))) {
+			
+			Send("21@@@@@");
+			//Send("22@@@@@");
+			Send("23@@@@@");
+		}
+		if(GUILayout.Button("Close")){
+			clientSocket.Close();//關閉通訊器
+				infomationText("伺服器斷線了！");
+			print("伺服器斷線了！");//顯示斷線
+			
+			th_Listen.Abort();//刪除執行緒
+			chkThread=false;
+		}
+		
+		
 		//我這裡先不考慮其他人物存在的情況，因為如果多個角色存在，還會有攝影機的問題
 		//應該要有一個變數來記錄說，如果是其他人物，要把攝影機關掉
 		//依照物件的collider的高度做參考計算位置
@@ -314,9 +402,10 @@ public class Player : MonoBehaviour {
 		screenPosition.y = Screen.height - screenPosition.y;
 		//字形、顏色、大小，懶的用程式設定，就用一個skin吧
 		//GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),"Player ID", style);
-		GUI.Label(new Rect(screenPosition.x-50,screenPosition.y,100,100),"Player ID",guiSkin.label);
-		
-		if ((Status >= 1 && Status <= 4) || Status == 6) {
+			if(info==false ){
+				GUI.Label(new Rect(screenPosition.x-50,screenPosition.y,100,100),"Player ID",guiSkin.label);
+			
+			if (((Status >= 1 && Status <= 4) || Status == 6)&& Trigger_ob!=null) {
 			worldPosition = new Vector3 (Trigger_ob.transform.position.x, Trigger_ob.transform.position.y + Trigger_ob.collider.bounds.size.y, Trigger_ob.transform.position.z);
 			screenPosition = transform.FindChild ("Main Camera").camera.WorldToScreenPoint (worldPosition);
 			screenPosition.y = Screen.height - screenPosition.y;
@@ -336,8 +425,9 @@ public class Player : MonoBehaviour {
 				HouseLevelUp data = Trigger_ob.GetComponent<HouseLevelUp>();
 				GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.label);
 			}
-		}
 
+		}
+			}
 		///Bag/////
 		if (bag == true) {
 			GUI.BeginGroup(new Rect (Screen.width/10, Screen.height/10, Screen.width*4/5, Screen.height*4/5));
@@ -357,17 +447,17 @@ public class Player : MonoBehaviour {
 			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 4/ 13 , Screen.width/3, Screen.height/16 ),sourceName[3]+":"+source[3].ToString(),guiSkin.customStyles[4]);
 			
 			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 5/ 13 , Screen.width/3, Screen.height/16 ),sourceName[4]+":"+source[4].ToString(),guiSkin.customStyles[4]);
-
+			
 			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 6/ 13 , Screen.width/3, Screen.height/16),sourceName[5]+":"+source[5].ToString(),guiSkin.customStyles[4]);
 			
 			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 7/ 13, Screen.width/3, Screen.height/16 ),sourceName[6]+":"+source[6].ToString(),guiSkin.customStyles[4]);
 			
 			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 8/ 13 , Screen.width/3, Screen.height/16 ),sourceName[7]+":"+source[7].ToString(),guiSkin.customStyles[4]);
 			
-
-
-
-
+			
+			
+			
+			
 			/*GUI.Box (new Rect (Screen.width*3/8, Screen.height* 1/ 16 , Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
 
 			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 3/ 16 , Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
@@ -377,33 +467,26 @@ public class Player : MonoBehaviour {
 			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 7/ 16 ,Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
 
 			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 9/ 16 ,Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);*/
-
-
-
-
+			
+			
+			
+			
 			if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
 				bag = false;
 				click=false;
 			}
 			GUI.EndGroup();
+			
+			
+		}
+		
+		///Bag/////
+		
 
 		
-		}
-
-		///Bag/////
-
-		//INFOMATION///////////
-		if (info == true) {
-			GUI.Box (new Rect (0, Screen.height/2-Screen.height / 20, Screen.width, Screen.height / 10),infotext,guiSkin.box);
-			if((int)(Time.time-infoTime)==1){
-				info=false;
-			}
-		}
-		//INFOMATION///////////
-
-
-
-
+		
+		
+		
 		/*GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height / 10),"");
 
 		GUI.Box (new Rect ( 0, 0, Screen.width/8, Screen.height / 10),"Wood");
@@ -418,7 +501,7 @@ public class Player : MonoBehaviour {
 		GUI.Box (new Rect ( 0, Screen.height / 10, Screen.width/8, Screen.height / 10),toolName[tool]+pick[toolKind].ToString());
 		GUI.Box (new Rect ( 0, Screen.height *2/ 10, Screen.width/8, Screen.height / 10),cartName[cart]+package[cart].ToString());
 		*/
-
+		
 		/*string ButtonText;
 
 
@@ -430,23 +513,23 @@ public class Player : MonoBehaviour {
 		else {
 			ButtonText=StatusName[Status];
 		}*/
-
+		
 		///BOMB//////////
 		if (5 - (int)(Time.time - BombTimeCount) >= 1) {
 			infomationText(((int)(5-(Time.time-BombTimeCount))).ToString());
-					
+			
 		}
 		if (BombGameStart == true) {
 
 			if(Time.time-GameTime>=BombGameTime[toolKind]){
 				infomationText("False....");
 				BombGameStart=false;
-
+				
 			}	
 			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 1/ 10 , Screen.width/2, Screen.height/10 ),BombGameQ);
 			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 2/ 10, Screen.width/2, Screen.height/10 ),BombGameInput);
 			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 3/ 10, Screen.width/2*((BombGameTime[toolKind]-Time.time+GameTime)/BombGameTime[toolKind]), Screen.height/20 ),"");
-
+			
 			switch(toolKind){
 			case 0:
 				w=1;
@@ -457,7 +540,7 @@ public class Player : MonoBehaviour {
 						w=1;
 						h++;
 					}
-
+					
 					print (w+" "+h );
 					if (GUI.Button (new Rect (Screen.width*w/4, Screen.height* h/ 3 , Screen.width/4, Screen.height/3 ),BombGame[i].ToString())){
 						if(GameQ[j]!=BombGame[i]){
@@ -469,16 +552,17 @@ public class Player : MonoBehaviour {
 							BombGameInput+=BombGame[i];
 							if(j>=4){
 								BombTimeCount=Time.time;
-
+								
 							}
 						}
 					}
 					w++;
-
+					
 				}
-
+				
 				if (j>=4){
-
+						DestroyHouse=TriggerHouse;
+						DestroyHouse.gameObject.transform.Translate(new Vector3(0,20,0));
 					Destroy(TriggerHouse.gameObject,5);
 					Bomb=false;
 					BombGameStart=false;
@@ -548,9 +632,9 @@ public class Player : MonoBehaviour {
 				break;
 				
 			}	
-		
+			
 		}
-
+		
 		if (tool==3 && click == false && Build == false && Bomb==true && GUI.Button (new Rect (Screen.width * 5 / 6, Screen.height * 2 / 4, Screen.width / 6, Screen.height / 4), "Destroy")) {
 			j=0;
 			w=1;
@@ -558,7 +642,7 @@ public class Player : MonoBehaviour {
 			BombGameQ="";
 			BombGameInput="";
 			print (toolKind);
-
+			
 			for(int i =0;i<BombGameButton[toolKind];i++){
 				GameQ[i]=BombGame[(int)(UnityEngine.Random.Range(0, BombGameButton[toolKind]))];
 				BombGameQ+=GameQ[i];
@@ -570,8 +654,8 @@ public class Player : MonoBehaviour {
 			Bomb=false;
 		}
 		///BOMB//////////
-
-
+		
+		
 		///FuctionButton/////
 		if (click == false) {//hide FuctionButton
 			if (Build==false && GUI.Button (new Rect (Screen.width-Screen.width/8, Screen.height* 3 / 4-Screen.height/5 , Screen.width/10, Screen.height/6 ),Bag,guiSkin.customStyles[3])){
@@ -633,8 +717,19 @@ public class Player : MonoBehaviour {
 									
 								}
 							}
-							infomationText("Get "+getQutity.ToString()+" "+sourceName[kind]+"s !");
-
+								if(kind==0){
+									Vector3 Pos=new Vector3(PickSource.transform.position.x-1,PickSource.transform.position.y+5,PickSource.transform.position.z+1);
+									GameObject animateNow=(GameObject) Instantiate(GetWood,Pos,GetWood.transform.rotation);
+									Destroy(animateNow,3);
+								}else{
+									Vector3 Pos=new Vector3(PickSource.transform.position.x-1,PickSource.transform.position.y+5,PickSource.transform.position.z+1);
+									
+									GameObject animateNow=(GameObject) Instantiate(GetStone,Pos,GetWood.transform.rotation);
+									Destroy(animateNow,3);
+									
+								}
+							infomationText("Get "+getQutity.ToString()+" "+sourceName[kind]+" !");
+							
 							////////資料庫
 							/*
 						UPDATE Player
@@ -691,66 +786,83 @@ public class Player : MonoBehaviour {
 				GUI.enabled=true;
 			}
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width/10, Screen.height-Screen.height/5 , Screen.width/10, Screen.height/6 ),UpGrade,guiSkin.customStyles[3])){
-			
+				
 			}
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width*2/10, Screen.height-Screen.height/5, Screen.width/10, Screen.height/6 ),Fixed,guiSkin.customStyles[3])){
-			
+				
 			}
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width*3/10, Screen.height-Screen.height/5, Screen.width/10, Screen.height/6 ),BombPng,guiSkin.customStyles[3])){
-			
+				
 			}
 		}//end of click
 		///FuctionButton/////
-
-
+		
+		
 		///Build/////
 		GUI.enabled = true;
 		if (Build == true) {
 			// 蓋房子放這邊
 			GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height),"");
 			
-				House BuildHouse=build_house.gameObject.transform.FindChild("HomePlane").gameObject.GetComponent<House>();
+			House BuildHouse=build_house.gameObject.transform.FindChild("HomePlane").gameObject.GetComponent<House>();
 			
 			if (GUI.Button (new Rect (Screen.width* 1/2, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),"House")){
 				if(source[0]>=BuildHouse.needSource[0] && source[1]>=BuildHouse.needSource[1] && source[2]>=BuildHouse.needSource[2]){
 					BuildNow = (Rigidbody)Instantiate(build_house,new Vector3(x-5,y,z-5),build_house.transform.rotation);
 					House thisBuild=BuildNow.gameObject.GetComponent<House>();
+
 					//Player thisPlayer=this.gameObject.GetComponent<Player>();
 					//thisBuild.player=thisPlayer;
 					//thisBuild.PlayerID=PlayerID;
 					Build=false;
 					click=true;
 				}
-
+				
 			}	
 			string text="Wood:"+BuildHouse.needSource[0]+"\r\nStone:"+BuildHouse.needSource[1]+"\r\nMetal:"+BuildHouse.needSource[2];
-			GUI.TextArea(new Rect (Screen.width* 1/8, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),text);
+			GUI.Box(new Rect (Screen.width* 1/8, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),text);
 			
 			if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 1/ 8 , Screen.width/10, Screen.height/8 ),"X")){
 				Build=false;	
 				click=false;
 			}
-
-
-
+			
+			
+			
 		}
-
+		
 		///Build/////
 		/// 
+			/// 
+		}//DataLoad
 	}
-
-
+	
+	
+	void OnApplicationQuit ()
+	{
+		clientSocket.Close();//關閉通訊器
+		
+		print("伺服器斷線了！");//顯示斷線
+		
+		th_Listen.Abort();//刪除執行緒
+		chkThread=false;
+	}
+	
+	
+	
 	void OnTriggerStay(Collider other){
 		point [0] = other.transform.position.x;
 		point [1] = other.transform.position.z;
-		move_flag = true;
+		if (other.tag == "Work" || other.tag == "House" || other.tag == "Stock" || other.tag == "Science" || other.tag != "Source") {
+						move_flag = true;
+				}
 		Trigger_ob = other.gameObject;
-
+		
 		switch (other.tag)
 		{
 		case "Source":
 			PickSource=other.gameObject;
-
+			
 			Status = 1;
 			break;
 		case "Stock":

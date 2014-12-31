@@ -3,16 +3,20 @@ using System.Collections;
 
 public class map : MonoBehaviour {
 	private float starttime;
-	private GameObject NewSource;
+	private GameObject NewSource,PlayerGameObject;
 	private Rigidbody BuildNow;
 	public GameObject[] source={null,null};//wood,stone;
+	public Rigidbody build_stock,build_work,build_science,buildNow;
+	public Rigidbody build_house;
 	private Source thisSource;
+	public GameObject Player;
 
 	// Use this for initialization
 	void Start () {
+		//PlayerGameObject = (GameObject)Instantiate(Player,new Vector3(500,2,500),Player.transform.rotation);
+		//PlayerGameObject.name="Player";
 
-
-		starttime = Time.time;
+		//starttime = Time.time;
 		//資料庫
 		/*
 		SELECT House

@@ -65,10 +65,15 @@ public class House : MonoBehaviour {
 			//	thisPlayer.infoTime=Time.time;
 				HouseLevelUp thisParent= this.transform.parent.GetComponent<HouseLevelUp>();
 				thisParent.PlayerID=PlayerID;
+
 				thisPlayer.click=false;
 				build = false;
-
+				Vector3 Pos=new Vector3(this.transform.position.x-1,this.transform.position.y+5,this.transform.position.z+1);
+				GameObject animateNow=(GameObject) Instantiate(thisParent.Building,Pos,thisParent.Building.transform.rotation);
+				Destroy(animateNow,3);
 				Destroy(this.gameObject);
+				
+
 			}			
 		}
 		if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 1/ 8 , Screen.width/10, Screen.height/8 ),"X")){
