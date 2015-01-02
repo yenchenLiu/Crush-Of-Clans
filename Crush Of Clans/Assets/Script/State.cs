@@ -12,5 +12,6 @@ public class State : MonoBehaviour {
 	static public int[] source = new int[8];
 	static public bool chkThread = true;
 	static public bool LoginSuecess = false;
+	static public int bombTotal=0;
 
 }

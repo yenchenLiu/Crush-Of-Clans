@@ -19,56 +19,53 @@ public class Player : MonoBehaviour {
 	source[0](wood)
 	source[1](stone)
 	source[2](metal)
-	...(看有沒有其他資源要加)
-	toolLevel[0](手動採集等級)
-	toolLevel[1](斧頭採集等級)
-	toolLevel[2](十字鎬採集等級)
-	...(看有沒有其他工具要加)
-	cartLevel[0](手動搬運等級)
-	cartLevel[1](手推車搬運等級)
+
 	*/
-	public Texture startButton;
-	private bool login,wrong;
-	private string id,password;
+
 	//status
 	public Texture[] FunctionButton;
-	public Texture Bag,Fixed,BombPng,UpGrade,Black;
+	public Texture Bag,Fixed,BombPng,UpGrade,Black,Construction;
 	public GUISkin guiSkin;
 	public string PlayerID="000";
 	public float PosX ,PosZ;
 	private float picktime,GameTime,BombTimeCount;
 	public float infoTime;
-	public int tool,cart,toolKind,cartKind,j,w,h;
+	public int tool,cart,toolKind,toolHp,bombKind;
+	public int[] toolBomb ={0,0,0};
+	public int j,w,h;
 	private int Status,Process;//0無狀態可蓋房子、 1採資源、2倉庫、3工作屋、4精煉屋、5裝炸彈 6"UpGrade" 
 	public  int[] source;//={0,0,0,0,0,0,0,0};//0 wood, 1 stone ,2 metal;
 	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
+	private string[] BombInfo = {"威力：50 範圍：單一","威力：100 範圍：九宮格","威力：200 範圍：連鎖"};
 	
 	//public  string[] sourceName={"wood","stone","metal","XX","YY"};//0 wood, 1 stone ,2 metal;
 	public int[] weight;// = {5,10,50};//0 wood, 1 stone ,2 metal;
+	public int[] bombWeight;
+	public int[,] toolWeight;
 	public int x,y,z;
-	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,DataLoad=false,GetPosition=false;
+	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,DataLoad=false,GetPosition=false,isHomeExsist=false,BombSelect=false;
 	private Rigidbody BuildNow;
 	private GameObject PickSource,TriggerHouse,DestroyHouse;
-	public GameObject fire,Building,GetStone,GetWood;
+	public GameObject fire,Building,GetStone,GetWood,Smoke,SmokeAnimation,BombAnimation,BombObjectS ,BombObjectM ,BombObjectL;
 	public Rigidbody build_house;
-	public bool info;
+	public bool info,BombSelected;
 	public string infotext;
+	private int[] needSource = {200,0,0,0,0,0,0,0};
 	
 	//attribute
 	private char[] BombGame={'1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','I','M','N','O','P'};
 	private char[] GameQ = {'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x'};
-	private int[] BombGameTime = {3,5,8,10};
-	private int[] pick = {5,10,20,50};//{{5,5,10,15},{10,20,30,40},{20,40,60,80},{30,60,90,120}};
+	private int[] BombGameTime = {5,20,50,10};
+	private int[] pick = {10,30};//{{5,5,10,15},{10,20,30,40},{20,40,60,80},{30,60,90,120}};
 	private int[] BombGameButton = {4,9,16,25};
-	public int[] toolLevel = {1,0,0,0};
-	public int[] cartLevel = {1,0};
+
 	private string BombGameQ,BombGameInput;
 	private string[] StatusName={"蓋房子","採資源","倉庫","合成","精煉","裝炸彈","UpGrade"};
 	private string[] toolName={"手","十字鎬","斧頭","炸彈"};
 	private string[] cartName={"手","推車"};
 	private float view;
 	public int[] package;// = {1000,2000};
-	private int[] CDtime = {5,4,3,2};
+	private int[] CDtime = {2,2,2,2};
 	public int weightNow;
 
 	
@@ -116,12 +113,13 @@ public class Player : MonoBehaviour {
 	// Use this for initialization
 
 	void Start () {
+		BombSelect = false;
 		GetPosition = false;
 		//ConnectToServer();
-		Send("10singo,singo@@@@@");
-		Send("21@@@@@");
-		Send("22@@@@@");
-		Send("23@@@@@");
+		//Send("10singo,singo@@@@@");
+		//Send("21@@@@@");
+		//Send("22@@@@@");
+	//	Send("23@@@@@");
 		//yield return new WaitForSeconds(2);
 		//this.transform.position.z =;
 
@@ -147,16 +145,14 @@ public class Player : MonoBehaviour {
 			cartLevel[1](手推車搬運等級)
 			這些全部先印出來就好
 		*/
-		wrong = false;
-		login = false;
-		id = "ID";
-		password = "Password";
+
 		DataLoad = true;
 		bag=false;
 		info = false;
 		weightNow = 0;
 		cart = 0;
 		tool = 0;
+		toolKind = 0;
 		Status = 0;
 		view = 50;
 		Build=false;
@@ -164,7 +160,8 @@ public class Player : MonoBehaviour {
 		picktime=Time.time-5;
 		BombTimeCount = Time.time - 6;
 		BombGameStart = false;
-
+		BombSelected = false;
+		bombKind = 0;
 	}
 	
 	// Update is called once per frame
@@ -181,10 +178,8 @@ public class Player : MonoBehaviour {
 								DataLoad = true;	
 						}
 				}
-		weightNow = (source [0] * weight [0])+(source [1] * weight [1]) + (source [2] * weight [2]);
-		x = (int)this.transform.position.x;
-		y = (int)this.transform.position.y;
-		z = (int)this.transform.position.z;
+		weightNow = (source [0] * weight [0])+(source [1] * weight [1]) + (source [2] * weight [2])+ (source [3] * weight [3])+ (source [4] * weight [4])+ (source [5] * weight [5])+ (source [6] * weight [6])+ (source [7] * weight [7]);
+
 		//this.transform.FindChild ("Main Camera").camera.fieldOfView = view;
 		////////資料庫
 		/*UPDATE Player
@@ -193,6 +188,11 @@ public class Player : MonoBehaviour {
 					x(x座標)
 					z(z座標)
 				*/
+
+		x = (int)this.transform.position.x;
+		y = (int)this.transform.position.y;
+		z = (int)this.transform.position.z;
+		
 		player_temp = this.transform.position;	
 		if (Input.GetKey (KeyCode.W)) {
 			this.transform.Translate (new Vector3 (0, 0, -1));
@@ -267,6 +267,15 @@ public class Player : MonoBehaviour {
 		infoTime = Time.time;
 	}
 	void OnGUI(){
+
+		//座標/////
+	//	GUI.BeginGroup(new Rect (Screen.width*7/16, 0, Screen.width/8, Screen.height / 20));
+		GUI.Box (new Rect (Screen.width*5/12, 0, Screen.width/6, Screen.height / 20),"",guiSkin.box);
+		GUI.Box (new Rect (Screen.width*14/32, 0, Screen.width/16, Screen.height / 20),((int)(this.transform.position.x)).ToString(),guiSkin.textField);
+		GUI.Box (new Rect (Screen.width*16/32, 0, Screen.width/16, Screen.height / 20),((int)(this.transform.position.z)).ToString(),guiSkin.textField);
+		//座標/////End
+
+
 		//INFOMATION///////////
 		if (info == true) {
 			GUI.Box (new Rect (0, Screen.height/2-Screen.height / 20, Screen.width, Screen.height / 10),infotext,guiSkin.box);
@@ -275,7 +284,9 @@ public class Player : MonoBehaviour {
 
 			}
 		}
-		//INFOMATION///////////
+		//INFOMATION///////////End
+
+		///Load///
 
 		if (DataLoad == false) {
 
@@ -283,14 +294,10 @@ public class Player : MonoBehaviour {
 			GUI.Box (new Rect (0, 0, Screen.width, Screen.height), "", guiSkin.customStyles [0]);
 			//GUI.Label(new Rect (0-Screen.width+(Screen.width*Process/10), Screen.height*4/5, (Screen.width) , Screen.height/20),"    ",guiSkin.button);
 
-
-
-
-
 		} else{ //DataLoad
 			
 		
-		if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
+	/*	if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
 			Server.ConnectToServer();
 			Send("10singo,singo@@@@@");
 		}
@@ -306,7 +313,7 @@ public class Player : MonoBehaviour {
 			print("伺服器斷線了！");//顯示斷線
 			
 			State.chkThread=false;
-		}
+		}*/
 		
 		
 		//我這裡先不考慮其他人物存在的情況，因為如果多個角色存在，還會有攝影機的問題
@@ -338,8 +345,11 @@ public class Player : MonoBehaviour {
 				ScientificHouse data = Trigger_ob.GetComponent<ScientificHouse>();
 				GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "  " + data.HouseLevel + "\n" + data.PlayerID + "\n" + data.HP,guiSkin.label);
 			} else if (Status == 6) {
-				HouseLevelUp data = Trigger_ob.GetComponent<HouseLevelUp>();
+				Home data = Trigger_ob.GetComponent<Home>();
 				GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.label);
+			}else if (Status == 7) {
+						HouseLevelUp data = Trigger_ob.GetComponent<HouseLevelUp>();
+						GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.label);
 			}
 
 		}
@@ -354,38 +364,60 @@ public class Player : MonoBehaviour {
 			GUI.Label (new Rect (Screen.width/10,Screen.height*9/20+Screen.width*1/10, Screen.width*1/5, Screen.width*1/5),"重量:"+weightNow+"/"+package[cart], guiSkin.label);
 			//GUI.Label (new Rect (Screen.width*3/8, Screen.height* 9/ 16 , Screen.width/3, Screen.height/8 ), "", guiSkin.label);
 			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 1/ 13 , Screen.width/3, Screen.height/16 ),sourceName[0]+":"+ source[0].ToString(),guiSkin.customStyles[4]);
-			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 2/ 13 , Screen.width/3, Screen.height/16),sourceName[1]+":"+source[1].ToString(),guiSkin.customStyles[4]);
-			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 3/ 13 , Screen.width/3, Screen.height/16 ),sourceName[2]+":"+source[2].ToString(),guiSkin.customStyles[4]);
-			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 4/ 13 , Screen.width/3, Screen.height/16 ),sourceName[3]+":"+source[3].ToString(),guiSkin.customStyles[4]);
-			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 5/ 13 , Screen.width/3, Screen.height/16 ),sourceName[4]+":"+source[4].ToString(),guiSkin.customStyles[4]);
-			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 6/ 13 , Screen.width/3, Screen.height/16),sourceName[5]+":"+source[5].ToString(),guiSkin.customStyles[4]);
-			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 7/ 13, Screen.width/3, Screen.height/16 ),sourceName[6]+":"+source[6].ToString(),guiSkin.customStyles[4]);
-			
-			GUI.Label (new Rect (Screen.width*3/8, Screen.height* 8/ 13 , Screen.width/3, Screen.height/16 ),sourceName[7]+":"+source[7].ToString(),guiSkin.customStyles[4]);
-			
-			
-			
-			
-			
-			/*GUI.Box (new Rect (Screen.width*3/8, Screen.height* 1/ 16 , Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
+				GUI.Label (new Rect (Screen.width*6/16, Screen.height* 3/ 26 , Screen.width/8, Screen.height/16 ), source[0].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 1/ 13 , Screen.width/12, Screen.height/8 ),sourceName[0],guiSkin.customStyles[3])){
+					
+					
+				}
+				GUI.Label (new Rect (Screen.width*9/16, Screen.height* 3/ 26 , Screen.width/8, Screen.height/16 ), source[1].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 1/ 13 , Screen.width/12, Screen.height/8 ),sourceName[1],guiSkin.customStyles[3])){
 
-			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 3/ 16 , Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
+					
+					
+				}
+				GUI.Label (new Rect (Screen.width*6/16, Screen.height* 7/ 26 , Screen.width/8, Screen.height/16 ), source[2].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 3/ 13 , Screen.width/12, Screen.height/8 ),sourceName[2],guiSkin.customStyles[3])){
 
-			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 5/ 16 , Screen.height/16 , Screen.height/16),Bag,guiSkin.customStyles[2]);
+					
+					
+				}
+				GUI.Label (new Rect (Screen.width*9/16, Screen.height* 7/ 26 , Screen.width/8, Screen.height/16 ), source[3].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 3/ 13 , Screen.width/12, Screen.height/8 ),sourceName[3],guiSkin.customStyles[3])){
 
-			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 7/ 16 ,Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);
+					
+					
+				}
+				GUI.Label (new Rect (Screen.width*6/16, Screen.height*11/ 26 , Screen.width/8, Screen.height/16 ), source[4].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 5/ 13 , Screen.width/12, Screen.height/8 ),sourceName[4],guiSkin.customStyles[3])){
 
-			GUI.Box (new Rect (Screen.width*3/8, Screen.height* 9/ 16 ,Screen.height/16 , Screen.height/16 ),Bag,guiSkin.customStyles[2]);*/
-			
-			
-			
+					
+					
+				}
+				GUI.Label (new Rect (Screen.width*9/16, Screen.height* 11/ 26 , Screen.width/8, Screen.height/16 ), source[5].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 5/ 13 , Screen.width/12, Screen.height/8 ),sourceName[5],guiSkin.customStyles[3])){
+
+					
+				}
+				GUI.Label (new Rect (Screen.width*6/16, Screen.height* 15/ 26 , Screen.width/8, Screen.height/16 ), source[6].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 7/ 13 , Screen.width/12, Screen.height/8 ),sourceName[6],guiSkin.customStyles[3])){
+
+					
+				}
+				GUI.Label (new Rect (Screen.width*9/16, Screen.height*15/ 26 , Screen.width/8, Screen.height/16 ), source[7].ToString(),guiSkin.customStyles[4]);
+				
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 7/ 13 , Screen.width/12, Screen.height/8 ),sourceName[7],guiSkin.customStyles[3])){
+
+					
+					
+				}
+
 			
 			if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
 				bag = false;
@@ -396,7 +428,7 @@ public class Player : MonoBehaviour {
 			
 		}
 		
-		///Bag/////
+		///Bag/////end
 		
 
 		
@@ -431,22 +463,65 @@ public class Player : MonoBehaviour {
 		}*/
 		
 		///BOMB//////////
+			/// 
+			/// 
+		if(BombSelected==true){ 
+				GUI.Box (new Rect (0, Screen.height / 5, Screen.width, Screen.height / 10),"選擇目標",guiSkin.box);
+				
+				if(Status!=2 && Status!=3&&Status!=4&&Status!=6&&Status!=7){
+					GUI.enabled=false;
+				}else{
+					GUI.enabled=true;
+					
+				}
+
+			if (GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),BombPng,guiSkin.customStyles[3])){
+					j=0;
+					w=1;
+					h=1;
+					BombGameQ="";
+					BombGameInput="";
+					
+					for(int i =0;i<BombGameButton[bombKind];i++){
+						GameQ[i]=BombGame[(int)(UnityEngine.Random.Range(0, BombGameButton[bombKind]))];
+						BombGameQ+=GameQ[i];
+						BombGameQ+=" ";
+					}	
+					BombGameStart=true;
+					GameTime=Time.time;
+
+					toolBomb[bombKind]--;
+					BombSelected=false;
+					
+				}
+
+				GUI.enabled=true;
+				
+			if (GUI.Button (new Rect (Screen.width*14/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
+				BombSelected=false;
+
+				click=false;
+			}
+		}
+
 		if (5 - (int)(Time.time - BombTimeCount) >= 1) {
 			infomationText(((int)(5-(Time.time-BombTimeCount))).ToString());
 			
 		}
 		if (BombGameStart == true) {
 
-			if(Time.time-GameTime>=BombGameTime[toolKind]){
+			if(Time.time-GameTime>=BombGameTime[bombKind]){
 				infomationText("False....");
 				BombGameStart=false;
+				click=false;
 				
-			}	
-			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 1/ 10 , Screen.width/2, Screen.height/10 ),BombGameQ);
-			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 2/ 10, Screen.width/2, Screen.height/10 ),BombGameInput);
-			GUI.TextArea(new Rect (Screen.width* 1/4, Screen.height* 3/ 10, Screen.width/2*((BombGameTime[toolKind]-Time.time+GameTime)/BombGameTime[toolKind]), Screen.height/20 ),"");
+			}
+
+			GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 1/ 10 , Screen.width/2, Screen.height/10 ),BombGameQ,guiSkin.textArea);
+				GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 2/ 10, Screen.width/2, Screen.height/10 ),BombGameInput,guiSkin.textArea);
+				GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 3/ 10, Screen.width/2*((BombGameTime[bombKind]-Time.time+GameTime)/BombGameTime[bombKind]), Screen.height/20 ),"",guiSkin.textArea);
 			
-			switch(toolKind){
+			switch(bombKind){
 			case 0:
 				w=1;
 				h=1;
@@ -457,11 +532,12 @@ public class Player : MonoBehaviour {
 						h++;
 					}
 					
-					print (w+" "+h );
-					if (GUI.Button (new Rect (Screen.width*w/4, Screen.height* h/ 3 , Screen.width/4, Screen.height/3 ),BombGame[i].ToString())){
+					//print (w+" "+h );
+					if (GUI.Button (new Rect (Screen.width*w/4, Screen.height* h/ 3 , Screen.width/4, Screen.height/3 ),BombGame[i].ToString(),guiSkin.button)){
 						if(GameQ[j]!=BombGame[i]){
 							infomationText("False....");
 							BombGameStart=false;
+								click=false;
 							break;
 						}else{
 							j++;
@@ -477,9 +553,10 @@ public class Player : MonoBehaviour {
 				}
 				
 				if (j>=4){
-						DestroyHouse=TriggerHouse;
-						DestroyHouse.gameObject.transform.Translate(new Vector3(0,20,0));
-					Destroy(TriggerHouse.gameObject,5);
+					DestroyHouse=TriggerHouse;
+						Instantiate(BombObjectS,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectS.transform.rotation);
+					
+					click=false;
 					Bomb=false;
 					BombGameStart=false;
 					move_flag = false;
@@ -495,10 +572,11 @@ public class Player : MonoBehaviour {
 						w=1;
 						h++;
 					}
-					if (GUI.Button (new Rect (Screen.width*w/5, Screen.height* 1/ 3 + (Screen.height* (h-1)*2/ 9), Screen.width/5, Screen.height*2/9 ),BombGame[i].ToString())){
+						if (GUI.Button (new Rect (Screen.width*w/5, Screen.height* 1/ 3 + (Screen.height* (h-1)*2/ 9), Screen.width/5, Screen.height*2/9 ),BombGame[i].ToString(),guiSkin.button)){
 						if(GameQ[j]!=BombGame[i]){
 							infomationText("False....");
 							BombGameStart=false;
+								click=false;
 							break;
 						}else{
 							j++;
@@ -508,7 +586,10 @@ public class Player : MonoBehaviour {
 					w++;
 				}
 				if (j>=9){
-					Destroy(TriggerHouse.gameObject);
+					DestroyHouse=TriggerHouse;
+						Instantiate(BombObjectM,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectS.transform.rotation);
+						
+					click=false;
 					Bomb=false;
 					BombGameStart=false;
 					j=0;
@@ -524,10 +605,12 @@ public class Player : MonoBehaviour {
 						w=1;
 						h++;
 					}
-					if (GUI.Button (new Rect (Screen.width*1/4+(Screen.width*(w-1)/8), Screen.height* 1/ 3 + (Screen.height* (h-1)/ 6), Screen.width/8, Screen.height*1/6 ),BombGame[i].ToString())){
+						if (GUI.Button (new Rect (Screen.width*1/4+(Screen.width*(w-1)/8), Screen.height* 1/ 3 + (Screen.height* (h-1)/ 6), Screen.width/8, Screen.height*1/6 ),BombGame[i].ToString(),guiSkin.button)){
 						if(GameQ[j]!=BombGame[i]){
 							infomationText("False....");
 							BombGameStart=false;
+						click=false;
+								
 							break;
 						}else{
 							j++;
@@ -537,7 +620,10 @@ public class Player : MonoBehaviour {
 					w++;
 				}
 				if (j>=16){
-					Destroy(TriggerHouse.gameObject);
+						DestroyHouse=TriggerHouse;
+						Instantiate(BombObjectL,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectS.transform.rotation);
+						
+						click=false;
 					Bomb=false;
 					BombGameStart=false;
 					j=0;
@@ -551,24 +637,7 @@ public class Player : MonoBehaviour {
 			
 		}
 		
-		if (tool==3 && click == false && Build == false && Bomb==true && GUI.Button (new Rect (Screen.width * 5 / 6, Screen.height * 2 / 4, Screen.width / 6, Screen.height / 4), "Destroy")) {
-			j=0;
-			w=1;
-			h=1;
-			BombGameQ="";
-			BombGameInput="";
-			print (toolKind);
-			
-			for(int i =0;i<BombGameButton[toolKind];i++){
-				GameQ[i]=BombGame[(int)(UnityEngine.Random.Range(0, BombGameButton[toolKind]))];
-				BombGameQ+=GameQ[i];
-				BombGameQ+=" ";
-			}	
-			BombGameStart=true;
-			GameTime=Time.time;
-			//Destroy(TriggerHouse.gameObject);
-			Bomb=false;
-		}
+
 		///BOMB//////////
 		
 		
@@ -578,6 +647,11 @@ public class Player : MonoBehaviour {
 				bag=true;
 				click=true;
 			}
+				if (Build==false && GUI.Button (new Rect (Screen.width-Screen.width/8, Screen.height* 3 / 4-Screen.height*2/5, Screen.width/10, Screen.height/6 ),BombPng,guiSkin.customStyles[3])){
+				BombSelect = true;
+				click=true;
+			}
+
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),FunctionButton[Status],guiSkin.customStyles[3])){
 				
 				switch (Status){
@@ -599,6 +673,7 @@ public class Player : MonoBehaviour {
 							print (quatity);
 							if(quatity<=pick[toolKind]){
 								if(package[cart]-weightNow-(quatity*sourceWeight)<0){
+
 									getQutity = (package[cart]-weightNow)/sourceWeight;
 									source[kind]+=getQutity;
 									pickup.quatity-=getQutity;
@@ -633,6 +708,7 @@ public class Player : MonoBehaviour {
 									
 								}
 							}
+
 								if(kind==0){
 									Vector3 Pos=new Vector3(PickSource.transform.position.x-1,PickSource.transform.position.y+5,PickSource.transform.position.z+1);
 									GameObject animateNow=(GameObject) Instantiate(GetWood,Pos,GetWood.transform.rotation);
@@ -663,7 +739,10 @@ public class Player : MonoBehaviour {
 						*/
 							picktime=Time.time;
 						}
-					}
+						}else{
+							infomationText("超過負載!");
+							
+						}
 					Status=0;
 					break;
 				case 2:
@@ -688,60 +767,186 @@ public class Player : MonoBehaviour {
 					//裝炸彈放這邊
 					break;
 				case 6:
-					HouseLevelUp HouseNow = TriggerHouse.GetComponent<HouseLevelUp>();
-					HouseNow.work=true;
-					click=true;
+
+						break;
+				case 7:
+				HouseLevelUp HouseNow = TriggerHouse.GetComponent<HouseLevelUp>();
+				HouseNow.work=true;
+				click=true;
 					
-					break;
+				break;
 				}	
 				
 			}
-			if(Status==0||Status==1){
+
+			if(Status==0||Status==1||Status==7){
 				GUI.enabled=false;//buttonEnable=false;
 			}else{
 				GUI.enabled=true;
 			}
+
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width/10, Screen.height-Screen.height/5 , Screen.width/10, Screen.height/6 ),UpGrade,guiSkin.customStyles[3])){
-				
+					switch(Status){
+					case 2:
+						//倉庫放這邊
+						StockHouse StockNow = TriggerHouse.GetComponent<StockHouse>();
+						StockNow.LevelUp=true;
+						click=true;
+						break;
+					case 3:
+						WorkHouse WorkNow = TriggerHouse.GetComponent<WorkHouse>();
+						WorkNow.LevelUp=true;
+						click=true;
+						//合成放這邊				
+						break;
+					case 4:
+						ScientificHouse ScienceNow = TriggerHouse.GetComponent<ScientificHouse>();
+						ScienceNow.LevelUp=true;
+						click=true;
+						//精煉放這邊	
+						break;
+
+					case 6:
+						Home HomeNow = TriggerHouse.GetComponent<Home>();
+						HomeNow.LevelUp=true;
+						click=true;
+						break;
+					}
 			}
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width*2/10, Screen.height-Screen.height/5, Screen.width/10, Screen.height/6 ),Fixed,guiSkin.customStyles[3])){
 				
 			}
-			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width*3/10, Screen.height-Screen.height/5, Screen.width/10, Screen.height/6 ),BombPng,guiSkin.customStyles[3])){
-				
-			}
+				GUI.enabled=true;
+
+				///Bomb Button
+			
+				///Bomb Button
 		}//end of click
 		///FuctionButton/////
 		
 		
 		///Build/////
 		GUI.enabled = true;
+
+			if(BombSelect==true){
+
+				GUI.BeginGroup(new Rect (Screen.width/10, Screen.height/10, Screen.width*4/5, Screen.height*4/5));
+				GUI.Box (new Rect (0,0, Screen.width*4/5, Screen.height*4/5), "", guiSkin.box);
+
+				////
+				GUI.BeginGroup(new Rect (Screen.width*3/60,Screen.height/20, Screen.width*7/30, Screen.height*7/10));
+				
+				GUI.Box (new Rect (0, 0,Screen.width*7/30, Screen.height*7/10), "", guiSkin.box);
+				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), Construction, guiSkin.box);
+				GUI.Label (new Rect (Screen.width*1/22,Screen.height*7/20, Screen.width*2/14, Screen.width*2/14), BombInfo[0]+ "\r\n攜帶量:"+toolBomb[0], guiSkin.label);
+				if(toolBomb[0]==0){
+					GUI.enabled=false;
+				}else{
+					GUI.enabled=true;	
+				}
+				if (GUI.Button (new Rect (Screen.width*1/16,Screen.height*10/20, Screen.width*1/10, Screen.width*1/20 ),"設置",guiSkin.button)){
+					BombSelected=true;
+					BombSelect=false;
+					bombKind=0;
+					
+				}
+				GUI.enabled=true;
+				
+				GUI.EndGroup();
+				///
+				GUI.BeginGroup(new Rect (Screen.width*17/60,Screen.height/20, Screen.width*7/30, Screen.height*7/10));
+				
+				GUI.Box (new Rect (0, 0,Screen.width*7/30, Screen.height*7/10), "", guiSkin.box);
+				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), Construction, guiSkin.box);
+				GUI.Label (new Rect (Screen.width*1/22,Screen.height*7/20, Screen.width*2/14, Screen.width*2/14), BombInfo[1]+ "\r\n攜帶量:"+toolBomb[1], guiSkin.label);
+				if(toolBomb[1]==0){
+					GUI.enabled=false;
+				}else{
+					GUI.enabled=true;	
+				}
+				if (GUI.Button (new Rect (Screen.width*1/16,Screen.height*10/20, Screen.width*1/10, Screen.width*1/20 ),"設置",guiSkin.button)){
+					BombSelected=true;
+					BombSelect=false;
+					bombKind=1;
+				
+				}
+				GUI.enabled=true;
+				
+				GUI.EndGroup();
+				////
+				/// 
+				GUI.BeginGroup(new Rect (Screen.width*31/60,Screen.height/20, Screen.width*7/30, Screen.height*7/10));
+				
+				GUI.Box (new Rect (0, 0,Screen.width*7/30, Screen.height*7/10), "", guiSkin.box);
+				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), Construction, guiSkin.box);
+				GUI.Label (new Rect (Screen.width*1/22,Screen.height*7/20, Screen.width*2/14, Screen.width*2/14), BombInfo[2]+ "\r\n攜帶量:"+toolBomb[2], guiSkin.label);
+				if(toolBomb[2]==0){
+					GUI.enabled=false;
+				}else{
+					GUI.enabled=true;	
+				}
+				if (GUI.Button (new Rect (Screen.width*1/16,Screen.height*10/20, Screen.width*1/10, Screen.width*1/20 ),"設置",guiSkin.button)){
+					BombSelected=true;
+					BombSelect=false;
+					bombKind=2;
+				}
+				GUI.enabled=true;
+				
+				GUI.EndGroup();
+				////////
+
+			
+				
+				if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
+					BombSelect=false;	
+					click=false;
+				}
+				GUI.EndGroup();
+			}
 		if (Build == true) {
 			// 蓋房子放這邊
-			GUI.Box (new Rect ( 0, 0, Screen.width, Screen.height),"");
-			
-			House BuildHouse=build_house.gameObject.transform.FindChild("HomePlane").gameObject.GetComponent<House>();
-			
-			if (GUI.Button (new Rect (Screen.width* 1/2, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),"House")){
-				if(source[0]>=BuildHouse.needSource[0] && source[1]>=BuildHouse.needSource[1] && source[2]>=BuildHouse.needSource[2]){
+				string text="";
+				for(int i=0;i<8;i++){
+					if(needSource[i]!=0){
+						text+="\r\n"+sourceName[i]+":"+source[i]+"/"+needSource[i];
+					}
+				}
+				GUI.BeginGroup(new Rect (Screen.width/10, Screen.height/10, Screen.width*4/5, Screen.height*4/5));
+				GUI.Box (new Rect (0,0, Screen.width*4/5, Screen.height*4/5), "", guiSkin.box);
+				GUI.Box (new Rect (Screen.width/15,Screen.height/12, Screen.width*2/7, Screen.width*2/7), Construction, guiSkin.box);
+				//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
+				GUI.Label (new Rect (Screen.width*3/8, Screen.height* 9/ 16 , Screen.width/3, Screen.height/8 ), text, guiSkin.label);
+				GUI.Label (new Rect (Screen.width*3/8,Screen.height* 4/ 16, Screen.width/3, Screen.width*1/5),"蓋房子前的土地整理及地基建設，為建造房子前的必須工程。", guiSkin.label);
+
+				
+				if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
+					Build=false;	
+					click=false;
+				}
+
+				GUI.EndGroup();
+
+				if(source[0]>=needSource[0] && source[1]>=needSource[1] && source[2]>=needSource[2]&& source[3]>=needSource[3]&& source[4]>=needSource[4]&& source[5]>=needSource[5]&&source[6]>=needSource[6]&& source[7]>=needSource[7]){
+					GUI.enabled=true;
+				}else{
+					GUI.enabled=false;
+					
+				}
+
+				if (GUI.Button (new Rect (Screen.width*2/10,Screen.height*4/10+Screen.width*1/5, Screen.width*1/5, Screen.width*1/15 ),"建造",guiSkin.button)){
+					House BuildHouse=build_house.gameObject.transform.FindChild("HomePlane").gameObject.GetComponent<House>();
+
 					BuildNow = (Rigidbody)Instantiate(build_house,new Vector3(x-5,y,z-5),build_house.transform.rotation);
+
 					House thisBuild=BuildNow.gameObject.GetComponent<House>();
 
-					//Player thisPlayer=this.gameObject.GetComponent<Player>();
-					//thisBuild.player=thisPlayer;
-					//thisBuild.PlayerID=PlayerID;
 					Build=false;
 					click=true;
+
 				}
-				
-			}	
-			string text="Wood:"+BuildHouse.needSource[0]+"\r\nStone:"+BuildHouse.needSource[1]+"\r\nMetal:"+BuildHouse.needSource[2];
-			GUI.Box(new Rect (Screen.width* 1/8, Screen.height* 1/ 4 , Screen.width/3, Screen.height/2 ),text);
-			
-			if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 1/ 8 , Screen.width/10, Screen.height/8 ),"X")){
-				Build=false;	
-				click=false;
-			}
+				GUI.enabled=true;
+
+
 			
 			
 			
@@ -756,11 +961,14 @@ public class Player : MonoBehaviour {
 	
 	void OnApplicationQuit ()
 	{
-		State.clientSocket.Close();//關閉通訊器
+		if (State.clientSocket != null) {
+						State.clientSocket.Close ();//關閉通訊器
 		
-		print("伺服器斷線了！");//顯示斷線
+						print ("伺服器斷線了！");//顯示斷線
 
-		State.chkThread=false;
+						State.chkThread = false;
+				
+		}
 	}
 	
 	
@@ -780,20 +988,17 @@ public class Player : MonoBehaviour {
 			break;
 		case "Stock":
 			TriggerHouse=other.gameObject;
-			Bomb=true;		
 			Status = 2;
 			
 			break;
 		case "Work":
 			TriggerHouse=other.gameObject;
-			Bomb=true;		
 			//print (WorkHouse.)
 			Status = 3;
 			
 			break;
 		case "Science":
 			TriggerHouse=other.gameObject;
-			Bomb=true;		
 			
 			Status = 4;
 			
@@ -803,8 +1008,12 @@ public class Player : MonoBehaviour {
 			
 			break;
 		case "House":
-			Bomb=true;		
 			Status = 6;
+			TriggerHouse=other.gameObject;
+			
+			break;
+		case "Struction":
+			Status = 7;
 			TriggerHouse=other.gameObject;
 			
 			break;
@@ -815,7 +1024,6 @@ public class Player : MonoBehaviour {
 		
 	}
 	void OnTriggerExit(Collider other){
-		Bomb=false;
 		PickSource = null;
 		Status = 0;
 		move_flag = false;

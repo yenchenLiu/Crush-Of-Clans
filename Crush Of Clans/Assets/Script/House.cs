@@ -3,6 +3,8 @@ using System.Collections;
 
 public class House : MonoBehaviour {
 
+	public Texture FunctionButton;
+	public GUISkin guiSkin;
 	private bool build;
 	private int x, z;
 //	private bool player;
@@ -38,7 +40,7 @@ public class House : MonoBehaviour {
 	void OnGUI(){
 		if (this.build == true) {
 				
-			if (GUI.Button (new Rect (Screen.width* 3/4, Screen.height* 4/ 5 , Screen.width/4, Screen.height/5 ),"Build")){
+			if (GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),FunctionButton,guiSkin.customStyles[3])){
 
 				this.transform.parent.collider.enabled=true;
 				//Player thisPlayer = GameObject.Find("Player").gameObject.GetComponent<Player>();
@@ -70,7 +72,16 @@ public class House : MonoBehaviour {
 				build = false;
 				Vector3 Pos=new Vector3(this.transform.position.x-1,this.transform.position.y+5,this.transform.position.z+1);
 				GameObject animateNow=(GameObject) Instantiate(thisParent.Building,Pos,thisParent.Building.transform.rotation);
+				Pos=new Vector3(this.transform.position.x-1,this.transform.position.y+4,this.transform.position.z+1);
+				
+				GameObject SomkeNow=(GameObject) Instantiate(thisParent.Smoke,Pos,thisParent.Building.transform.rotation);
+				Pos=new Vector3(this.transform.position.x-1,this.transform.position.y+4.1f,this.transform.position.z+1);
+				
+				GameObject SmokeAnimateNow=(GameObject) Instantiate(thisParent.SmokeAnimation,Pos,thisParent.Building.transform.rotation);
+				
 				Destroy(animateNow,3);
+				Destroy(SomkeNow,3);
+				Destroy(SmokeAnimateNow,3);
 				Destroy(this.gameObject);
 				
 
