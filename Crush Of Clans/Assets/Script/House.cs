@@ -9,7 +9,7 @@ public class House : MonoBehaviour {
 	private int x, z;
 //	private bool player;
 	public Player thisPlayer;
-	public int[] needSource = {10,5,0};
+	public int[] needSource = {200,0,0};
 	public string PlayerID;
 	private GameObject player;
 	
@@ -19,7 +19,7 @@ public class House : MonoBehaviour {
 
 		this.build = true;
 		this.renderer.material.color =Color.green;
-		player = GameObject.Find ("Player").gameObject;
+		player = GameObject.Find (State.name).gameObject;
 		thisPlayer = player.GetComponent<Player> ();
 		PlayerID = thisPlayer.PlayerID;
 
@@ -87,7 +87,7 @@ public class House : MonoBehaviour {
 
 			}			
 		}
-		if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 1/ 8 , Screen.width/10, Screen.height/8 ),"X")){
+		if (GUI.Button (new Rect (9*Screen.width/10, Screen.height* 1/ 8 , Screen.width/10, Screen.height/8 ),"X",guiSkin.button)){
 			thisPlayer.click=false;
 			
 			Destroy (this.transform.parent.gameObject);

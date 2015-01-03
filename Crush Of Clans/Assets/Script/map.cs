@@ -2,12 +2,15 @@
 using System.Collections;
 
 public class map : MonoBehaviour {
+	public GUISkin guiSkin;
 	private float starttime;
 	private GameObject NewSource,PlayerGameObject;
-	private Rigidbody BuildNow;
+	public GameObject joy;
+	public Rigidbody BuildNow,AnotherPlayer,AnotherPlayerNow;
 	public GameObject[] source={null,null};//wood,stone;
-	public Rigidbody build_stock,build_work,build_science,buildNow;
-	public Rigidbody build_house;
+	public Rigidbody[] build;
+//	public bool DataLoad = false;
+
 	private Source thisSource;
 	public GameObject Player;
 
@@ -15,81 +18,83 @@ public class map : MonoBehaviour {
 	void Start () {
 		//PlayerGameObject = (GameObject)Instantiate(Player,new Vector3(500,2,500),Player.transform.rotation);
 		//PlayerGameObject.name="Player";
+		StartCoroutine("server_function");
+		State.ProcessTime = (int)Time.time;
+		State.Process = 0;
+		State.DataLoad = false;
 
-		//starttime = Time.time;
-		//資料庫
-		/*
-		SELECT House
-		Key PlayerID
-		欄位：
-		PlayerID
-		x(x座標)
-		z(z座標)
-		HouseID(看需不需要)
-
-		SELECT StockHouse
-		欄位：
-		PlayerID
-		x(x座標)
-		z(z座標)
-		HouseID(看需不需要)
-		StockHouseLevel
-		StockHouseHP
-		StockSouce[0]
-		StockSouce[1]
-		StockSouce[2]
-
-		SELECT WorkHouse
-		欄位：
-		PlayerID
-		x(x座標)
-		z(z座標)
-		HouseID(看需不需要)
-		StockHouseLevel
-		StockHouseHP
-
-		SELECT ScienceHouse
-		欄位：
-		PlayerID
-		x(x座標)
-		z(z座標)
-		HouseID(看需不需要)
-		StockHouseLevel
-		StockHouseHP
-
-		SELECT Source
-		欄位：
-		x(x座標)
-		z(z座標)
-		kind(種類)
-		quatity(數量)
-
-		這些全部先印出來就好
-		*/
 	}
+	IEnumerator server_function(){
+		while (true) {
+			Server.Send("31@@@@@");
+			Server.Send("32@@@@@");
+			yield return new WaitForSeconds(3);	
+
+			if(State.PosX!=-1&&State.PosZ!=-1&&State.mainPlayerStatus==false){
+				PlayerGameObject = (GameObject)Instantiate(Player,new Vector3(State.PosX,1.5f,State.PosZ),Player.transform.rotation);
+				PlayerGameObject.name=State.name;
+
+				State.mainPlayerStatus=true;
+				Instantiate(joy,joy.transform.position,joy.transform.rotation);
+				
+			}
+
+			foreach (string HouseIDKey in State.HouseID.Keys) {
+				if(!State.HouseStatus[HouseIDKey]){
+					BuildNow = (Rigidbody)Instantiate( build[ State.HouseKind[HouseIDKey] ] ,new Vector3(State.HousePositionX[HouseIDKey],0,State.HousePositionZ[HouseIDKey]),build[State.HouseKind[HouseIDKey]].transform.rotation);
+					build thisBuild =BuildNow.gameObject.GetComponent<build>();
+					thisBuild.HouseID=State.HouseID[HouseIDKey];
+					State.HouseStatus[HouseIDKey]=true;
+				}			
+				if(State.HouseUpdate[HouseIDKey]<0){
+					State.HouseID.Remove(HouseIDKey);
+				}
+			}
+			foreach (string PlayerIDKey in State.PlayerID.Keys) {
+				if(!State.PlayerStatus[PlayerIDKey]){
+					AnotherPlayerNow = (Rigidbody)Instantiate( AnotherPlayer ,new Vector3(State.PlayerPositionX[PlayerIDKey],0,State.PlayerPositionZ[PlayerIDKey]),AnotherPlayer.transform.rotation);
+					AnotherPlayer thisPlayer =AnotherPlayerNow.gameObject.GetComponent<AnotherPlayer>();
+					thisPlayer.PlayerID=State.PlayerID[PlayerIDKey];
+					State.PlayerStatus[PlayerIDKey]=true;
+				}		
+				if(State.PlayerUpdate[PlayerIDKey]<0){
+					State.PlayerID.Remove(PlayerIDKey);
+				}
+			}
+			if(State.isConnect==false){
+				Application.LoadLevel("Start");
+				State.isConnect=true;
+			}
+		}
+
 	
+	}
+
+	void build_function(){
+		foreach (string HouseIDKey in State.HouseID.Keys) {
+			if(!State.HouseStatus[HouseIDKey]){
+				BuildNow = (Rigidbody)Instantiate( build[ State.HouseKind[HouseIDKey] ] ,new Vector3(State.HousePositionX[HouseIDKey],0,State.HousePositionZ[HouseIDKey]),build[State.HouseKind[HouseIDKey]].transform.rotation);
+				build thisBuild =BuildNow.gameObject.GetComponent<build>();
+				thisBuild.HouseID=State.HouseID[HouseIDKey];
+				State.HouseStatus[HouseIDKey]=true;
+			}			
+		}
+	}
 	// Update is called once per frame
 	void Update () {
-		//print (Time.time - starttime);
-		/*
-		if ( (int)(Time.time - starttime )% 10 == 0 ) {
-			GameObject[] temp = GameObject.FindGameObjectsWithTag("Source");
-
-			if(temp.Length<=5000){
-				int x, z, kind;
-				//for(int i=0;i<5;i++){
-					x= 10*(UnityEngine.Random.Range(0, 2000)/10);//r.Next(2000);
-					z= 10*(UnityEngine.Random.Range(0, 2000)/10);//r.Next(2000);
-					kind= UnityEngine.Random.Range(0, 2);//r.Next(2000);
-					
-					NewSource = (GameObject)Instantiate(source[kind],new Vector3(x,0,z),source[kind].transform.rotation);
-					thisSource =NewSource.GetComponent<Source>();
-					thisSource.quatity=UnityEngine.Random.Range(50, 100);
-				
-
-			//	}
-
-			}	
-		}*/
+		if (State.DataLoad == false) {
+			State.Process=(int)Time.time-State.ProcessTime;
+			if (State.Process >= 5) {
+				State.DataLoad = true;	
+			}
+		}
+	
 	}
+	void OnGUI(){
+		if (State.DataLoad == false) {
+		GUI.Box (new Rect (0, 0, Screen.width, Screen.height), "", guiSkin.customStyles [0]);
+			GUI.Label(new Rect (0-Screen.width+(Screen.width*State.Process/5), Screen.height*4/5, (Screen.width) , Screen.height/20),"    ",guiSkin.button);
+		}
+	}
+
 }

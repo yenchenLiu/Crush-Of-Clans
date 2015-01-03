@@ -21,19 +21,25 @@ public class GameStart : MonoBehaviour {
 	
 	}
 	IEnumerator login_function(){
-		print ("test");
+
 		Server.ConnectToServer();
 		Server.Send("10"+id+","+password+"@@@@@");
+		//Server.Send("31@@@@@");
+		//Server.Send("32@@@@@");
 
-		yield return new WaitForSeconds(3);
-		print ("test2");
-		Server.Send("21@@@@@");
+		yield return new WaitForSeconds(1);
+
+
 		
 		if(State.LoginSuecess){
-
+			Server.Send("21@@@@@");
+			Server.Send("22@@@@@");
+			Server.Send("23@@@@@");
 			PlayerPrefs.SetString ("id",id);
 			//CONNECT SERVER
 			//PlayerPrefs.SetString ("password",password);
+			State.ID=this.id;
+			State.Password=this.password;
 			print ("Connect Sucesses!");
 			Application.LoadLevel("MainScene");
 			//return true;
@@ -67,9 +73,9 @@ public class GameStart : MonoBehaviour {
 				login = false;
 			}
 			if (GUI.Button (new Rect (Screen.width*1/2-Screen.width*1/8, Screen.height*2/3-Screen.height*1/30, Screen.width*1/4, Screen.height*1/10),"確認",guiSkin.button)) {
-				print ("123");
+
 				StartCoroutine("login_function");
-				print ("456");
+
 				if(State.LoginSuecess){
 
 

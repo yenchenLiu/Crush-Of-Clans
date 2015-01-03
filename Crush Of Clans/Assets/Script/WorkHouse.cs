@@ -13,40 +13,54 @@ public class WorkHouse : MonoBehaviour {
 	WorkHouseHP=100;(暫定耐久)
 
 	*/
+	//共同變數
 	public GUISkin guiSkin;
+	public GameObject Building,Smoke,SmokeAnimation,BombObject,BombAnimation;
 
+	public int kind;//建築類型
 	private int bombCount, demage;
 	private GameObject bombSet;
 	private Bomb bomb;	
-	public GameObject Building,Smoke,SmokeAnimation,BombObject,BombAnimation;
-	
-	public Texture[] LevelPng ;
-	public Sprite[] LevelSpritePng;
 	private SpriteRenderer spriteRenderer;// 
+	private int HouseLevel=1;
+	public bool work,LevelUp;
+	public int HP=100;
+	public string PlayerID;
+	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
+	private GameObject player;
+	private Player playerNow;
+
+
+	//共同變數end
+	///
+	//相似變數
 	private string[] LevelInfo = {"可建造工具：鐵製斧頭、鐵製十字鎬","可建造工具：木製手推車、普通炸彈","可建造工具：中級炸彈","可建造工具：高級炸彈、鐵製手推車"};
 	private string[,] TooLInfo = {{"採集量：10 最高耐久：100","採集量：30 最高耐久：200",""},{"採集量：10 最高耐久：100","採集量：30 最高耐久：200",""},{"威力：50 範圍：單一","威力：100 範圍：九宮格","威力：200 範圍：連鎖"},{"負重量：10000","負重量：20000",""}};
-		
 	private int[,] LevelUpSource = {{100,100,10,0,0,0,0,0},{200,200,50,0,0,0,0,0},{300,300,100,0,0,0,0,0},{500,400,200,0,0,0,0,0}};
 	private int[,] needLevel = {{1,2,10},{1,2,10},{2,4,5},{3,5,10}};
-	
 	private int[,,] needSource = {{ {100,50,0,0,0,0,0,0},{100,20,50,0,0,0,0,0},{0,0,0,0,0,0,0,0} },{ {100,100,0,0,0,0,0,0},{300,0,150,0,0,0,0,0},{0,0,0,0,0,0,0,0} },{ {0,0,0,0,10,5,0,0},{0,0,0,0,100,50,0,0},{0,0,0,0,500,300,0,0} },{ {500,0,0,0,0,0,0,0},{100,0,300,0,0,0,0,0},{0,0,0,0,0,0,0,0} }};//{{10,5,0},{10,20,5},{20,40,20},{100,100,100}};
+	public Texture[] LevelPng ;
+	public Sprite[] LevelSpritePng;
+
+	//相似變數end
+	///
+	//獨有變數
+
+	//workwouse////
 	private int[,] toolExist={{0,0,0},{0,0,0},{0,0,0},{0,0,0}}; 
 	private int[,] toolHp={{100,200},{100,200}};
 	private int[,] toolHpNow={{0,0},{0,0}};
-	public int HouseLevel=1;
-	public bool work,LevelUp,selectHouseKind;
-	public int HP=100,Lelel=1;
-	public string PlayerID;
-	private float vSliderValue;
-	//private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭"};
-	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
-	
-	private GameObject player;
+	private bool selectHouseKind;
 	private string[] toolName={"斧頭","十字鎬","炸彈","推車"};
-	public GameObject[] tool={null,null,null,null};
-	//private GameObject[] tool = {null,null,null};
 	private int selectTool,selectToolKind;
-	private Player playerNow;
+	//public GameObject[] tool={null,null,null,null};
+	
+	//workwouse End////
+
+	//獨有變數end
+
+
+	
 	// Use this for initialization
 	void Start () {
 		 spriteRenderer = this.transform.FindChild("House").gameObject.transform.FindChild("住宅").GetComponent<SpriteRenderer>();
@@ -56,7 +70,6 @@ public class WorkHouse : MonoBehaviour {
 		work = false;
 		LevelUp = false;
 		selectHouseKind = false;
-		vSliderValue =Screen.height * 1 / 4;
 		bombCount = 0;
 		bombSet = null;
 	}
