@@ -26,7 +26,7 @@ public class joy_control : MonoBehaviour {
 	void Start () {
 		//取得player.cs資料
 
-		Player_script = GameObject.Find (State.name).GetComponent<Player>();
+		Player_script = GameObject.Find (State.PlayerName).GetComponent<Player>();
 
 		joy_flag = false;
 		joy_pixel = this.guiTexture.pixelInset;
@@ -38,7 +38,7 @@ public class joy_control : MonoBehaviour {
 
 		test_slide = 0;
 
-		Player_ob = GameObject.Find (State.name).transform.FindChild ("People").gameObject;
+		Player_ob = GameObject.Find (State.PlayerName).transform.FindChild ("People").gameObject;
 		Player_ob.animation ["Take 001"].speed *= 4;
 		Player_ob.animation.Stop ();
 		Player_start_position [0] = Player_ob.transform.FindChild ("ChamferCyl001").transform.localPosition;
@@ -72,7 +72,7 @@ public class joy_control : MonoBehaviour {
 					if(Mathf.Pow (temp_x - start_pixel_x, 2) + Mathf.Pow(temp_y - start_pixel_y, 2) > Mathf.Pow (r / 2, 2)){
 						float temp =(Mathf.Atan2 (temp_y - start_pixel_y,temp_x - start_pixel_x) * 180 / Mathf.PI + 90) * -1;
 						//Angle
-					GameObject.Find (State.name).transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0, temp, 0);
+					GameObject.Find (State.PlayerName).transform.FindChild("People").gameObject.transform.localEulerAngles = new Vector3(0, temp, 0);
 						
 						temp = temp * Mathf.PI / 180;
 
@@ -89,7 +89,7 @@ public class joy_control : MonoBehaviour {
 								Player_script.player_temp.z = player_z;
 							}	 
 						}
-					GameObject.Find(State.name).transform.position = Player_script.player_temp;
+					GameObject.Find(State.PlayerName).transform.position = Player_script.player_temp;
 					}
 					Player_ob.animation.Play();
 					break;
@@ -121,12 +121,12 @@ public class joy_control : MonoBehaviour {
 			if(both_move){
 				float distance = Mathf.Pow(Mathf.Pow(point[0, 0] - point[1, 0], 2) + Mathf.Pow(point[0, 1] - point[1, 1], 2), 0.5f);
 				if(distance > zoom_temp){
-					if(GameObject.Find (State.name).transform.FindChild("Main Camera").camera.fieldOfView < 100){
-						GameObject.Find (State.name).transform.FindChild("Main Camera").camera.fieldOfView += 4;
+					if(GameObject.Find (State.PlayerName).transform.FindChild("Main Camera").camera.orthographicSize< 21){
+						GameObject.Find (State.PlayerName).transform.FindChild("Main Camera").camera.orthographicSize += 2;
 					}
 				}else if(distance < zoom_temp){
-					if(GameObject.Find (State.name).transform.FindChild("Main Camera").camera.fieldOfView > 30){
-						GameObject.Find (State.name).transform.FindChild("Main Camera").camera.fieldOfView -= 4;
+					if(GameObject.Find (State.PlayerName).transform.FindChild("Main Camera").camera.orthographicSize > 9){
+						GameObject.Find (State.PlayerName).transform.FindChild("Main Camera").camera.orthographicSize -= 2;
 					}
 				}
 				zoom_temp = distance;

@@ -1,32 +1,38 @@
 ﻿using UnityEngine;
 using System.Collections;
-
+using System.Text.RegularExpressions;
+using System;
+using System.IO;
+using System.Text;
+using System.Threading;
 public class build : MonoBehaviour {
 	
 	//共同變數
 	public GUISkin guiSkin;
-	public GameObject Building,Smoke,SmokeAnimation,BombObject,BombAnimation;
+	public GameObject Building,Smoke,SmokeAnimation,BombObject,BombAnimation,Treasure;
 	private GameObject player;
 	private Player playerNow;
-	
-	
+	public Texture[] tool;
+	public Texture[] source; 
+
 	private int bombCount, demage;
 	private GameObject bombSet;
 	private Bomb bomb;	
 	private SpriteRenderer spriteRenderer;
 	
 	public int kind;//建築類型
-	public int HouseLevel=1;
-	public bool work,LevelUp,loading;
+	public int HouseLevel;
+	public bool work,LevelUp,loading,fixedHouse;
 	public int HP=100;
 	public string PlayerID;
 	public string HouseID;
 	public string HouseKind;
+	private string sendString;
 	
 	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
 	public string[] HouseName = {"工地","住宅","倉庫","工作屋","精煉屋","世界奇觀"};
 	private int[] houseLevelLimit={1,3,5,5,5,1};
-	
+	private int[] HpMax = {100,300,700,1000,1500};
 	
 	
 	//共同變數end
@@ -72,10 +78,12 @@ public class build : MonoBehaviour {
 	private int[] stockNeedLevel = {1,1,3,4,3,5,2,2};
 	public int[] stockSource = {20,20,20,0,0,0,0,0};
 	public int[] stocklimit = {5000,10000,20000,30000,40000};
+	public int weightNow;
 	public bool put,get;
 	public string Quatity;
 	private int selectSource,playerSource;
 	private int limit;
+	private int[] weight={5,10,20,10,10,10,30,30};// = {5,10,50};//0 wood, 1 stone ,2 metal;
 	
 	////Stock End
 	//workwHouse////
@@ -103,53 +111,69 @@ public class build : MonoBehaviour {
 	
 
 	//共同fuction	
-	IEnumerator server_function(){
-		while (true) {
-			yield return new WaitForSeconds(5);	
-			
-			if (HouseID != "" && HouseID != null) {
-				State.HouseUpdate[HouseID]--;
-				if(!State.HouseID.ContainsKey(HouseID)){
-					if(kind==2){
-						//DestorySource
-					}
-					if(kind==3){
-						//DestoryTool
-					}
-					Destroy (this.gameObject);
-					break;
-				}
-				kind = State.HouseKind [HouseID];
-				//HouseLevel = State.HouseLevel [HouseID];
-				HP=State.HouseHP [HouseID];
-				PlayerID = State.HousePlayerID [HouseID];
-				this.name = HouseID;
+	void destroyThisHouse(){
+		//			print ("error2");
+		
+		try{
+		if (State.HouseID.ContainsKey (HouseID)) {
+			State.HouseID.Remove(HouseID);
 				
-				if (LevelSpritePng.Length != 0 ) {
-					spriteRenderer = this.transform.FindChild("House").gameObject.transform.FindChild("住宅").GetComponent<SpriteRenderer>();
-					
-					spriteRenderer.sprite = LevelSpritePng[HouseLevel-1];
-					
-				}
-				HouseKind=HouseName[kind];
-			}
-			yield return new WaitForSeconds(5);
+		}
+		
+			State.HouseKind.Remove(HouseID);
+			State.HousePlayerID.Remove(HouseID);
+			
+			State.HouseHP.Remove(HouseID);
+			State.HousePositionX.Remove(HouseID);
+			State.HousePositionZ.Remove(HouseID);
+			State.HouseLevel.Remove(HouseID);
+			State.HouseStatusNow.Remove(HouseID);
+			State.HouseStatus.Remove(HouseID);
+			State.HouseUpdate.Remove (HouseID);
+
+			Destroy(this.gameObject);
+		}catch(Exception){
+			print ("error3");
+		}
+	
+	}
+
+	/*IEnumerator server_function(){
+			yield return new WaitForSeconds(2);	
+		
+		while (true) {
+			
+				
+			yield return new WaitForSeconds(2);
 		}
 		
 		
+	}*/
+
+	void sendSourceModify(int[] quatity){
+
+		sendString = "24";
+		for (int i=0; i<quatity.Length; i++) {
+			if(quatity[i]!=0){
+				sendString = "24";
+				sendString+=(i+1).ToString()+","+(quatity[i]).ToString();
+				Server.Send (sendString);
+				print (sendString);
+			}
+		}
+
 	}
 	void Start () {
 		print ("OK!");
 		////Server////
+		spriteRenderer = this.transform.FindChild("House").gameObject.transform.FindChild("住宅").GetComponent<SpriteRenderer>();
 	
-		//kind = State.HouseKind [HouseKind];
-
-		//this.transform.position = new Vector3 (State.HousePositionX [HouseID], 0, State.HousePositionY [HouseID]);
 		
 		/// Server///
 		///共同
-		StartCoroutine("server_function");
-
+		//StartCoroutine("server_function");
+		sendString = "";
+		fixedHouse = false;
 		work = false;
 		LevelUp = false;
 		bombCount = 0;
@@ -157,7 +181,7 @@ public class build : MonoBehaviour {
 		///共同
 		////
 		//獨有
-		
+		weightNow = 0;
 		///Construction
 		selectHouse = 0;
 		///Construstion End
@@ -171,7 +195,7 @@ public class build : MonoBehaviour {
 		selectTool = 0;
 		selectToolKind = 0;
 		selectHouseKind = false;
-		
+		selectHouse = 1;
 		//workHouse End
 		///scienceHouse
 		selectSource = 0;
@@ -183,7 +207,13 @@ public class build : MonoBehaviour {
 	}///End of Start
 	
 	void Update () {
-
+		if (State.HouseKind.ContainsKey (HouseID)) {
+		 	//spriteRenderer = this.transform.FindChild("House").gameObject.transform.FindChild("住宅").GetComponent<SpriteRenderer>();
+			spriteRenderer.sprite = LevelSpritePng[HouseLevel-1];
+			
+			HouseKind = HouseName [State.HouseKind [HouseID]];
+		
+		}
 	}///End of Update
 	
 	
@@ -198,7 +228,7 @@ public class build : MonoBehaviour {
 	
 	//炸彈碰撞///
 	IEnumerator bomb_function(){
-		
+		print ("Bomb2");
 		yield return new WaitForSeconds(1);
 		if(bomb.kind==2&&bombCount<2&& State.bombTotal<=5){
 			State.bombTotal++;
@@ -209,6 +239,7 @@ public class build : MonoBehaviour {
 		
 		
 		print( (State.bombTotal).ToString());
+
 		Vector3 Pos=new Vector3(this.transform.position.x,this.transform.position.y+4,this.transform.position.z);
 		
 		GameObject SomkeNow=(GameObject) Instantiate(Smoke,Pos,Building.transform.rotation);
@@ -223,16 +254,31 @@ public class build : MonoBehaviour {
 		Destroy(SmokeAnimateNow,3);
 		Destroy(BombAnimateNow,3);
 		
-		
-		this.HP -= demage;
-		if (this.HP <= 0) {
+
+		if (this.HP-demage <= 0) {
+			State.HouseHP[HouseID] -= demage;
+			HP-=demage;
+			Server.Send ("58"+HouseID+","+(demage*-1));
+			
+			print("BOMB!!!!");
+			GameObject thisTreasure=(GameObject)Instantiate(Treasure,this.transform.position,Treasure.transform.rotation);
+			Treasure treasureNow =thisTreasure.GetComponent<Treasure>();
+				System.Random r=new System.Random();
+			
+			for(int i=0;i<8;i++){
+				treasureNow.source[i]=r.Next(200);
+			}
 			bombCount = 0;
 			State.bombTotal--;
 			if(State.bombTotal<0) State.bombTotal=0;
 			
 			print( (State.bombTotal).ToString());
-			Destroy (this.gameObject);		
+				
 		} else {
+			HP-=demage;
+			State.HouseHP[HouseID]-=demage;
+			
+			Server.Send ("58"+HouseID+","+(demage*-1));
 			yield return new WaitForSeconds (3);
 			
 			bombCount = 0;
@@ -245,16 +291,16 @@ public class build : MonoBehaviour {
 			print( (State.bombTotal).ToString());
 			
 		}
-		
 	}
 	
 	void OnTriggerEnter(Collider other){
 		if (bombSet==null && other.tag == "bomb") {
-			
+			print ("Bomb!");
 			bombSet=other.gameObject;
 			bomb=bombSet.GetComponent<Bomb>();	
 			
 			demage=bomb.power;
+			print (demage.ToString());
 			StartCoroutine("bomb_function");
 			
 		}
@@ -263,7 +309,7 @@ public class build : MonoBehaviour {
 	
 	void OnGUI () {
 
-	
+
 
 		string text;
 		text = "";
@@ -317,82 +363,132 @@ public class build : MonoBehaviour {
 				}
 				
 				if (GUI.Button (new Rect (Screen.width * 2 / 10, Screen.height * 4 / 10 + Screen.width * 1 / 5, Screen.width * 1 / 5, Screen.width * 1 / 15), "建造", guiSkin.button)) {
+					int[] modifySource=new int[8];
+					
 					switch (selectHouse) {
 					case 1:
 						if (!playerNow.isHomeExsist) {
-							buildNow = (Rigidbody)Instantiate (build_house, this.transform.position, build_house.transform.rotation);
-							buildNow.gameObject.collider.enabled = true;
-							build thisHomeBuild = buildNow.GetComponent<build> ();
-							thisHomeBuild.PlayerID = playerNow.PlayerID;
-							thisHomeBuild.HP = 100;
+							//Server.Send ("552,"+this.transform.position.x+","+this.transform.position.z+"@@@@@");
+					//		print ("error4");
+							
+							Server.Send("56"+HouseID+",2,1");
+							State.HouseKind[HouseID]=1;
+							//kind=1;
+							//buildNow = (Rigidbody)Instantiate (build_house, this.transform.position, build_house.transform.rotation);
+							//buildNow.gameObject.collider.enabled = true;
+							//build thisHomeBuild = buildNow.GetComponent<build> ();
+							//thisHomeBuild.PlayerID = playerNow.PlayerID;
+							//thisHomeBuild.HP = 100;
+							sendString="";
 							for (int i =0; i<8; i++) {
-								playerNow.source [i] = playerNow.source [i] - needHouseSource [3, i];
+								modifySource[i]=-1*needHouseSource [1, i];
+								playerNow.source [i] = playerNow.source [i] - needHouseSource [1, i];
 							}
+							sendSourceModify(modifySource);
 							
 							playerNow.infomationText ("Home is Build");
 							playerNow.click = false;
-							Destroy (this.gameObject);
 							playerNow.isHomeExsist = true;
 							
 							work = false;
+
+							//destroyThisHouse();
 							
+							//Destroy (this.gameObject);
+
 						}
 						break;
 					case 2:
-						buildNow = (Rigidbody)Instantiate (build_stock, this.transform.position, build_stock.transform.rotation);
-						buildNow.gameObject.collider.enabled = true;
+						//Server.Send ("553,"+this.transform.position.x+","+this.transform.position.z+"@@@@@");
+						Server.Send("56"+HouseID+",3,1");
+						State.HouseKind[HouseID]=2;
+						//kind=2;
 						
-						build thisStockBuild = buildNow.GetComponent<build> ();
-						thisStockBuild.PlayerID = playerNow.PlayerID;
-						thisStockBuild.HP = 100;
+						//buildNow = (Rigidbody)Instantiate (build_stock, this.transform.position, build_stock.transform.rotation);
+						//buildNow.gameObject.collider.enabled = true;
+						
+						//build thisStockBuild = buildNow.GetComponent<build> ();
+						//thisStockBuild.PlayerID = playerNow.PlayerID;
+						//thisStockBuild.HP = 100;
 						for (int i =0; i<8; i++) {
-							thisStockBuild.stockSource [i] = 0;
-							
-							playerNow.source [i] = playerNow.source [i] - needHouseSource [0, i];
+							modifySource[i]=-1*needHouseSource [2, i];
+							playerNow.source [i] = playerNow.source [i] - needHouseSource [2, i];
 						}
+						sendSourceModify(modifySource);
 						playerNow.infomationText ("Stock House is Build");
 						playerNow.click = false;
-						Destroy (this.gameObject);
+						//destroyThisHouse();
+						
+						//Destroy (this.gameObject);
 						work = false;
 						break;
 					case 3:
-						buildNow = (Rigidbody)Instantiate (build_work, this.transform.position, build_work.transform.rotation);
-						buildNow.gameObject.collider.enabled = true;
+						//Server.Send ("554,"+this.transform.position.x+","+this.transform.position.z+"@@@@@");
+						Server.Send("56"+HouseID+",4,1");
+							State.HouseKind[HouseID]=3;
+						//kind=3;
+						//buildNow = (Rigidbody)Instantiate (build_work, this.transform.position, build_work.transform.rotation);
+						//buildNow.gameObject.collider.enabled = true;
 						
-						build thisWorkBuild = buildNow.GetComponent<build> ();
-						thisWorkBuild.PlayerID = playerNow.PlayerID;
-						thisWorkBuild.HP = 100;
+						//build thisWorkBuild = buildNow.GetComponent<build> ();
+						//thisWorkBuild.PlayerID = playerNow.PlayerID;
+						//thisWorkBuild.HP = 100;
 						for (int i =0; i<8; i++) {
-							playerNow.source [i] = playerNow.source [i] - needHouseSource [1, i];
+							modifySource[i]=-1*needHouseSource [3, i];
+							playerNow.source [i] = playerNow.source [i] - needHouseSource [3, i];
 						}
+						sendSourceModify(modifySource);
 						playerNow.infomationText ("Work House is Build");
 						playerNow.click = false;
-						Destroy (this.gameObject);
 						work = false;
+						
+					//	destroyThisHouse();
+						
+						//Destroy (this.gameObject);
 						break;
 					case 4:
-						buildNow = (Rigidbody)Instantiate (build_science, this.transform.position, build_science.transform.rotation);
-						buildNow.gameObject.collider.enabled = true;
-						build thisScienceBuild = buildNow.GetComponent<build> ();
-						thisScienceBuild.PlayerID = playerNow.PlayerID;
-						thisScienceBuild.HP = 100;
+						//Server.Send ("555,"+this.transform.position.x+","+this.transform.position.z+"@@@@@");
+							Server.Send("56"+HouseID+",5,1");
+							State.HouseKind[HouseID]=4;
+						//kind=4;
+						//buildNow = (Rigidbody)Instantiate (build_science, this.transform.position, build_science.transform.rotation);
+						//buildNow.gameObject.collider.enabled = true;
+						//build thisScienceBuild = buildNow.GetComponent<build> ();
+						//thisScienceBuild.PlayerID = playerNow.PlayerID;
+						//thisScienceBuild.HP = 100;
 						for (int i =0; i<8; i++) {
-							playerNow.source [i] = playerNow.source [i] - needHouseSource [2, i];
+							modifySource[i]=-1*needHouseSource [4, i];
+							playerNow.source [i] = playerNow.source [i] - needHouseSource [4, i];
 						}
+						sendSourceModify(modifySource);
 						
 						playerNow.infomationText ("Science House is Build");
 						playerNow.click = false;
-						Destroy (this.gameObject);
 						work = false;
+						
+						//destroyThisHouse();
+						
+						//Destroy (this.gameObject);
 						break;
 						
 					case 5:
-						if (!playerNow.isHomeExsist) {
-							buildNow = (Rigidbody)Instantiate (build_house, this.transform.position, build_house.transform.rotation);
-							buildNow.gameObject.collider.enabled = true;
-							build thisHomeBuild = buildNow.GetComponent<build> ();
-							thisHomeBuild.PlayerID = playerNow.PlayerID;
-							thisHomeBuild.HP = 100;
+						Server.Send("56"+HouseID+",6,1");
+						State.HouseKind[HouseID]=5;
+						for (int i =0; i<8; i++) {
+							modifySource[i]=-1*needHouseSource [5, i];
+							playerNow.source [i] = playerNow.source [i] - needHouseSource [5, i];
+						}
+						sendSourceModify(modifySource);
+						
+						playerNow.infomationText ("101 is Builded");
+						playerNow.click = false;
+						work = false;
+						/*if (!playerNow.isHomeExsist) {
+							//buildNow = (Rigidbody)Instantiate (build_house, this.transform.position, build_house.transform.rotation);
+							//buildNow.gameObject.collider.enabled = true;
+							//build thisHomeBuild = buildNow.GetComponent<build> ();
+							//thisHomeBuild.PlayerID = playerNow.PlayerID;
+							//thisHomeBuild.HP = 100;
 							for (int i =0; i<8; i++) {
 								playerNow.source [i] = playerNow.source [i] - needHouseSource [3, i];
 							}
@@ -404,11 +500,11 @@ public class build : MonoBehaviour {
 							
 							work = false;
 							
-						}
+						}*/
 						break;
 					}
 					
-					Vector3 Pos = new Vector3 (buildNow.gameObject.transform.position.x - 1, buildNow.gameObject.transform.position.y + 5, buildNow.gameObject.transform.position.z + 1);
+					Vector3 Pos = new Vector3 (this.gameObject.transform.position.x - 1, this.gameObject.transform.position.y + 5, this.gameObject.transform.position.z + 1);
 					GameObject animateNow = (GameObject)Instantiate (Building, Pos, Building.transform.rotation);
 					Pos = new Vector3 (this.transform.position.x, this.transform.position.y + 4, this.transform.position.z);
 					
@@ -417,9 +513,9 @@ public class build : MonoBehaviour {
 					
 					GameObject SmokeAnimateNow = (GameObject)Instantiate (SmokeAnimation, Pos, Building.transform.rotation);
 					
-					Destroy (animateNow, 3);
-					Destroy (SomkeNow, 3);
-					Destroy (SmokeAnimateNow, 3);
+					Destroy (animateNow, 5);
+					Destroy (SomkeNow, 5);
+					Destroy (SmokeAnimateNow, 5);
 					
 				}///End of Building
 				GUI.enabled = true;
@@ -435,14 +531,16 @@ public class build : MonoBehaviour {
 			///stockHouse 
 			
 			if (kind == 2) {
-				
-				
+				weightNow=0;
+				for(int i=0;i<8;i++){
+					weightNow+=stockSource[i]*weight[i];
+				}
 				GUI.BeginGroup (new Rect (Screen.width / 10, Screen.height / 10, Screen.width * 4 / 5, Screen.height * 4 / 5));
 				
 				GUI.Box (new Rect (0, 0, Screen.width * 4 / 5, Screen.height * 4 / 5), "", guiSkin.box);
-				GUI.Box (new Rect (Screen.width / 10, Screen.height / 16, Screen.width * 1 / 5, Screen.width * 1 / 5), "", guiSkin.box);
-				//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
-				GUI.Label (new Rect (Screen.width / 10 + Screen.width * 1 / 20, Screen.height * 9 / 20, Screen.width * 1 / 10, Screen.width * 1 / 5), "", guiSkin.label);
+				GUI.Box (new Rect (Screen.width / 10, Screen.height / 16, Screen.width * 1 / 5, Screen.width * 1 / 5), source[selectSource], guiSkin.box);
+				GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), weightNow+"/"+stocklimit[HouseLevel], guiSkin.label);
+				GUI.Label (new Rect (Screen.width / 10 + Screen.width * 1 / 20, Screen.height * 9 / 20, Screen.width * 1 / 10, Screen.width * 1 / 5), sourceName[selectSource], guiSkin.label);
 				GUI.Label (new Rect (Screen.width / 10, Screen.height * 9 / 20 + Screen.width * 1 / 10, Screen.width * 1 / 5, Screen.width * 1 / 5), "", guiSkin.label);
 				//GUI.Label (new Rect (Screen.width*3/8, Screen.height* 9/ 16 , Screen.width/3, Screen.height/8 ), "", guiSkin.label);
 				if (put == true || get == true)
@@ -453,12 +551,12 @@ public class build : MonoBehaviour {
 					int j=i/2;
 					GUI.Label (new Rect (Screen.width * 6 / 16, Screen.height * (3 + (4 * j) )/ 26, Screen.width / 8, Screen.height / 16), stockSource[i].ToString (), guiSkin.customStyles [4]);
 					
-					if (GUI.Button (new Rect (Screen.width * 5 / 16, Screen.height * (1 + (2 * j)) / 13, Screen.width / 12, Screen.height / 8), sourceName [i], guiSkin.customStyles [3])) {
+					if (GUI.Button (new Rect (Screen.width * 5 / 16, Screen.height * (1 + (2 * j)) / 13, Screen.width / 12, Screen.height / 8), source [i], guiSkin.customStyles [6])) {
 						selectSource = i;
 					}
 					GUI.Label (new Rect (Screen.width * 9 / 16, Screen.height * (3 + (4 * j)) / 26, Screen.width / 8, Screen.height / 16), stockSource[i + 1].ToString (), guiSkin.customStyles [4]);
 					
-					if (GUI.Button (new Rect (Screen.width * 8 / 16, Screen.height * (1 + (2 * j)) / 13, Screen.width / 12, Screen.height / 8), sourceName [i + 1], guiSkin.customStyles [3])) {
+					if (GUI.Button (new Rect (Screen.width * 8 / 16, Screen.height * (1 + (2 * j)) / 13, Screen.width / 12, Screen.height / 8), source [i + 1], guiSkin.customStyles [6])) {
 						selectSource = i + 1;
 						
 					}
@@ -473,7 +571,7 @@ public class build : MonoBehaviour {
 				GUI.EndGroup ();
 				
 				playerSource = playerNow.source [selectSource];
-				limit=playerNow.package[playerNow.cart]-playerNow.source[1]*playerNow.weight[1]-playerNow.source[2]*playerNow.weight[2];
+				limit=playerNow.package[playerNow.cart]-playerNow.source[1]*weight[1]-playerNow.source[2]*weight[2];
 				if (HouseLevel >= stockNeedLevel [selectSource]) {
 					GUI.enabled = true;
 				} else {
@@ -489,57 +587,98 @@ public class build : MonoBehaviour {
 				}
 				GUI.enabled = true;
 				if (get == true || put == true) {
-					GUI.Box (new Rect (Screen.width / 2 - (Screen.width / 6), Screen.height / 2 - (Screen.height / 6), Screen.width / 3, Screen.height / 3), "", guiSkin.box);
-					Quatity = GUI.TextField (new Rect (Screen.width * 9 / 20, Screen.height / 2 - Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 15), Quatity, guiSkin.textField);
-					if (GUI.Button (new Rect (Screen.width * 7 / 20, Screen.height / 2 - Screen.height * 1 / 15, Screen.width * 1 / 20, Screen.height * 1 / 15), "<<", guiSkin.button)) {
-						Quatity = "0";
+					GUI.Box (new Rect (Screen.width / 2 - (Screen.width / 4), Screen.height / 2 - (Screen.height / 4), Screen.width / 2, Screen.height / 2), "", guiSkin.box);
+					Quatity = GUI.TextField (new Rect (Screen.width*7/16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 8, Screen.height * 1 / 12), Quatity, guiSkin.textField);
+					if (GUI.Button (new Rect (Screen.width * 5 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), "<<", guiSkin.button)) {
+						if(get==true){
+							Quatity = "0";
+							
+						}
+						if(put==true){
+							Quatity = "0";
+							//Quatity=((int)(stocklimit[HouseLevel]-weightNow)/weight[selectSource]).ToString();
+						}
 					}
-					if (GUI.Button (new Rect (Screen.width * 8 / 20, Screen.height / 2 - Screen.height * 1 / 15, Screen.width * 1 / 20, Screen.height * 1 / 15), "<", guiSkin.button)) {
+					if (GUI.Button (new Rect (Screen.width * 6 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), "<", guiSkin.button)) {
 						if (int.Parse (Quatity) > 0) {
-							Quatity = ((int.Parse (Quatity)) - 1).ToString ();
+							if(get==true){
+								Quatity = ((int.Parse (Quatity)) - 1).ToString ();
+								
+							}
+							if(put==true && int.Parse (Quatity) > (int)(stocklimit[HouseLevel]-weightNow)/weight[selectSource]){
+								Quatity = ((int.Parse (Quatity)) - 1).ToString ();
+							}
+
 						}
 						
 					}
-					if (GUI.Button (new Rect (Screen.width * 12 / 20, Screen.height / 2 - Screen.height * 1 / 15, Screen.width * 1 / 20, Screen.height * 1 / 15), ">>", guiSkin.button)) {
+					if (GUI.Button (new Rect (Screen.width * 10 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), ">>", guiSkin.button)) {
 						if (put == true) {
-							
-							Quatity = playerNow.source [selectSource].ToString ();
+							if(playerNow.source [selectSource]*weight[selectSource] <= stocklimit[HouseLevel]-weightNow ){
+								Quatity = playerNow.source [selectSource].ToString ();
+							}else{
+								Quatity=((int)(stocklimit[HouseLevel]-weightNow)/weight[selectSource]).ToString();
+								if(int.Parse(Quatity)>playerNow.source[selectSource]){
+									Quatity = playerNow.source [selectSource].ToString ();
+									
+								}
+							}
 						}
 						if (get == true) {
-							Quatity = stockSource [selectSource].ToString ();
+							if(stockSource [selectSource]*weight[selectSource]<=  playerNow.package[playerNow.cart]){
+								Quatity = stockSource [selectSource].ToString ();
+							}else{
+								Quatity=((int)(playerNow.package[playerNow.cart]-playerNow.weightNow)/weight[selectSource]).ToString();
+								if(int.Parse(Quatity)>stockSource[selectSource]){
+									Quatity = stockSource[selectSource].ToString ();
+									
+								}
+							}
+
 							
 						}
 						
 					}
-					if (GUI.Button (new Rect (Screen.width * 11 / 20, Screen.height / 2 - Screen.height * 1 / 15, Screen.width * 1 / 20, Screen.height * 1 / 15), ">", guiSkin.button)) {
+					if (GUI.Button (new Rect (Screen.width * 9 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), ">", guiSkin.button)) {
 						if (put == true) {
 							
 							limit = playerNow.source [selectSource];
+							if(limit*weight[selectSource]>stocklimit[HouseLevel]-weightNow){
+								limit=(int)(stocklimit[HouseLevel]-weightNow/weight[selectSource]);
+							}
 						}
 						if (get == true) {
 							limit = stockSource [selectSource];
-							
+							if(limit*weight[selectSource]>playerNow.package[playerNow.cart]-playerNow.weightNow){
+								limit=(int)(playerNow.package[playerNow.cart]-playerNow.weightNow/weight[selectSource]);
+							}
 						}
 						if (int.Parse (Quatity) < limit) {
 							Quatity = ((int.Parse (Quatity)) + 1).ToString ();
 						}
 					}
-					if (GUI.Button (new Rect (Screen.width * 8 / 20, Screen.height / 2 + Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 15), "確定", guiSkin.button)) {
+					int[] quatity=new int[8]{0,0,0,0,0,0,0,0};
+					if (GUI.Button (new Rect (Screen.width * 8 / 20, Screen.height / 2 + Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 10), "確定", guiSkin.button)) {
 						if (get == true) {
+							quatity[selectSource]= int.Parse (Quatity);
 							playerNow.source [selectSource] = playerNow.source [selectSource] + int.Parse (Quatity);
+
 							stockSource [selectSource] = stockSource [selectSource] - int.Parse (Quatity);
 						}
 						if (put == true) {
+							quatity[0]= -1*int.Parse (Quatity);
+							
 							playerNow.source [selectSource] = playerNow.source [selectSource] - int.Parse (Quatity);
 							stockSource [selectSource] = stockSource [selectSource] + int.Parse (Quatity);
 							
 						}
+						sendSourceModify(quatity);
 						Quatity = "0";
 						get = false;
 						put = false;
 					}
 					
-					if (GUI.Button (new Rect (Screen.width * 10 / 20, Screen.height / 2 + Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 15), "取消", guiSkin.button)) {
+					if (GUI.Button (new Rect (Screen.width * 10 / 20, Screen.height / 2 + Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 10), "取消", guiSkin.button)) {
 						Quatity = "0";
 						get = false;
 						put = false;
@@ -598,7 +737,7 @@ public class build : MonoBehaviour {
 				GUI.BeginGroup (new Rect (Screen.width / 10, Screen.height / 10, Screen.width * 4 / 5, Screen.height * 4 / 5));
 				GUI.Box (new Rect (0, 0, Screen.width * 4 / 5, Screen.height * 4 / 5), "", guiSkin.box);
 				//GUI.Label (new Rect (0,10, Screen.width*4/5, Screen.height*1/10),toolName[selectTool], guiSkin.box);
-				GUI.Box (new Rect (Screen.width / 10, Screen.height / 16, Screen.width * 1 / 5, Screen.width * 1 / 5), "", guiSkin.box);
+				GUI.Box (new Rect (Screen.width / 10, Screen.height / 16, Screen.width * 1 / 5, Screen.width * 1 / 5), tool[selectToolKind+(selectTool*3)], guiSkin.box);
 				//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
 				if (selectHouseKind == false && selectTool != 2) {
 					GUI.Label (new Rect (Screen.width / 10, Screen.height * 9 / 20, Screen.width * 1 / 5, Screen.width * 1 / 5), text, guiSkin.label);
@@ -700,10 +839,13 @@ public class build : MonoBehaviour {
 							toolHpNow [selectTool, selectToolKind] = toolHp [selectTool, selectToolKind];
 						}
 						playerNow.infomationText (toolName [selectTool] + "製作成功!");
+						int[] quatity=new int[8];
 						for (int i=0; i<8; i++) {
+							quatity[0]=-1*toolNeedSource [selectTool, selectToolKind, i];
 							playerNow.source [i] -= toolNeedSource [selectTool, selectToolKind, i];
 							
 						}
+						sendSourceModify(quatity);
 						
 						
 					}
@@ -840,18 +982,19 @@ public class build : MonoBehaviour {
 				
 			}///end of workhouse
 			if (kind == 4) {
+				text+=sourceName[selectScienceSource+2]+"\r\n";
 				for (int i=0; i<8; i++) {
 					if (needScienceSource [selectScienceSource, i] != 0) {
 						text += sourceName [i] + ":" + playerNow.source [i] + "/" + needScienceSource [selectScienceSource, i] + "\r\n";
 					}
 				}
-				text += "所需等級：" + HouseLevel + "/" + needScienceLevel [selectSource];
+				text += "所需等級：" + HouseLevel + "/" + needScienceLevel [selectScienceSource];
 				GUI.BeginGroup (new Rect (Screen.width / 10, Screen.height / 10, Screen.width * 4 / 5, Screen.height * 4 / 5));
 				GUI.Box (new Rect (0, 0, Screen.width * 4 / 5, Screen.height * 4 / 5), "", guiSkin.box);
-				GUI.Box (new Rect (Screen.width / 10, Screen.height / 16, Screen.width * 1 / 5, Screen.width * 1 / 5), "", guiSkin.box);
+				GUI.Box (new Rect (Screen.width / 10, Screen.height / 16, Screen.width * 1 / 5, Screen.width * 1 / 5), source[selectScienceSource], guiSkin.box);
 				//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
-				GUI.Label (new Rect (Screen.width / 10, Screen.height * 9 / 20, Screen.width * 1 / 5, Screen.width * 1 / 5), text, guiSkin.label);
-				GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 9 / 16, Screen.width / 3, Screen.height / 8), "", guiSkin.label);
+				GUI.Label (new Rect (Screen.width / 10, Screen.height * 9 / 20, Screen.width * 1 / 5, Screen.width * 1 / 5), text+"\r\n攜帶量:"+playerNow.source[selectScienceSource+2], guiSkin.label);
+				GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 10 / 16, Screen.width / 3, Screen.height / 8), "", guiSkin.label);
 				
 				
 				if (GUI.Button (new Rect (Screen.width * 3 / 8, Screen.height * 2 / 16, Screen.width / 3, Screen.height / 8), "鐵片", guiSkin.button)) {
@@ -883,20 +1026,29 @@ public class build : MonoBehaviour {
 					
 				}
 				if (GUI.Button (new Rect (Screen.width * 2 / 10, Screen.height * 4 / 10 + Screen.width * 1 / 5, Screen.width * 1 / 5, Screen.width * 1 / 15), "建造", guiSkin.button)) {
+					int[] quatity=new int[8]{0,0,0,0,0,0,0,0};
 					if (selectScienceSource == 0) {
+						quatity[2]++;
 						playerNow.source [2]++;
 					}
 					if (selectScienceSource == 1) {
+						quatity[3]++;
+						
 						playerNow.source [3]++;
 					}
 					if (selectScienceSource == 2) {
+						quatity[4]++;
+						
 						playerNow.source [4]++;
 					}
 					if (selectScienceSource == 3) {
+						quatity[5]++;
+						
 						playerNow.source [5]++;
 					}				
-					
+
 					for (int i=0; i<8; i++) {
+						quatity[i]-=needScienceSource [selectScienceSource, i];
 						playerNow.source [i] -= needScienceSource [selectScienceSource, i];
 					}
 				}
@@ -922,9 +1074,9 @@ public class build : MonoBehaviour {
 				//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
 				if (selectHouseKind == false) {
 					
-					GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 9 / 16, Screen.width / 3, Screen.height / 8), LevelText, guiSkin.label);
+					GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 9 / 16, Screen.width / 3, Screen.height / 6), LevelText, guiSkin.label);
 				}
-				GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 4 / 16, Screen.width / 3, Screen.width * 1 / 5), LevelInfo [kind, HouseLevel - 1], guiSkin.label);
+				GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 4 / 16, Screen.width / 3, Screen.width * 1 / 4), LevelInfo [kind, HouseLevel - 1], guiSkin.label);
 				
 				
 				if (GUI.Button (new Rect (Screen.width * 11 / 15, 0, Screen.width / 15, Screen.width / 15), "X", guiSkin.button)) {
@@ -943,15 +1095,20 @@ public class build : MonoBehaviour {
 				
 				if (GUI.Button (new Rect (Screen.width * 2 / 10, Screen.height * 4 / 10 + Screen.width * 1 / 5, Screen.width * 1 / 5, Screen.width * 1 / 15), "建造", guiSkin.button)) {
 					LevelUp = false;
+					int[] quatity=new int[8];
 					for (int i =0; i<8; i++) {
-						
+						quatity[i]=-1* LevelUpSource [kind, HouseLevel - 1, i];
 						playerNow.source [i] = playerNow.source [i] - LevelUpSource [kind, HouseLevel - 1, i];
 					}
+
 					spriteRenderer.sprite = LevelSpritePng [HouseLevel];
 					
-					HouseLevel++;
 					playerNow.click = false;
-					playerNow.infomationText ("工作屋等級提升!");
+					playerNow.infomationText ("等級提升!");
+					Server.Send("56"+HouseID+","+(kind+1)+","+(HouseLevel+1));
+					HouseLevel++;
+						print("error20");
+					//this.HP=HpMax[HouseLevel];
 					Vector3 Pos = new Vector3 (this.gameObject.transform.position.x - 1, this.gameObject.transform.position.y + 5, this.gameObject.transform.position.z + 1);
 					GameObject animateNow = (GameObject)Instantiate (Building, Pos, Building.transform.rotation);
 					Pos = new Vector3 (this.transform.position.x, this.transform.position.y + 4, this.transform.position.z);
@@ -961,10 +1118,10 @@ public class build : MonoBehaviour {
 					
 					GameObject SmokeAnimateNow = (GameObject)Instantiate (SmokeAnimation, Pos, Building.transform.rotation);
 					
-					Destroy (animateNow, 3);
-					Destroy (SomkeNow, 3);
-					Destroy (SmokeAnimateNow, 3);
-					Destroy (animateNow, 3);
+					Destroy (animateNow, 5);
+					Destroy (SomkeNow, 5);
+					Destroy (SmokeAnimateNow, 5);
+					Destroy (animateNow, 5);
 					
 				}
 				GUI.enabled = true;
@@ -978,7 +1135,79 @@ public class build : MonoBehaviour {
 			
 			
 		}//end of level
-		
+		if (fixedHouse == true) {
+				
+			if ( HP < HpMax [HouseLevel-1]) {
+				string LevelText = "";
+				int woodSource,stoneSource;
+				woodSource=((int)((HpMax[HouseLevel-1]-HP)/5));
+				stoneSource=((int)((HpMax[HouseLevel-1]-HP)/10));
+				LevelText = "\r\n" + sourceName [0] + ":" + playerNow.source [0] + "/" + woodSource;
+				LevelText += "\r\n" + sourceName [1] + ":" + playerNow.source [1] + "/" + stoneSource ;
+
+
+				
+				GUI.BeginGroup (new Rect (Screen.width / 10, Screen.height / 10, Screen.width * 4 / 5, Screen.height * 4 / 5));
+				GUI.Box (new Rect (0, 0, Screen.width * 4 / 5, Screen.height * 4 / 5), "", guiSkin.box);
+				GUI.Box (new Rect (Screen.width / 15, Screen.height / 12, Screen.width * 2 / 7, Screen.width * 2 / 7), LevelPng [HouseLevel-1], guiSkin.box);
+				if (selectHouseKind == false) {
+					
+					GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 9 / 16, Screen.width / 3, Screen.height / 6), LevelText, guiSkin.label);
+				}
+				//GUI.Label (new Rect (Screen.width * 3 / 8, Screen.height * 4 / 16, Screen.width / 3, Screen.width * 1 / 5), LevelInfo [kind, HouseLevel - 1], guiSkin.label);
+				
+				
+				if (GUI.Button (new Rect (Screen.width * 11 / 15, 0, Screen.width / 15, Screen.width / 15), "X", guiSkin.button)) {
+					fixedHouse = false;
+					playerNow.click = false;
+				}
+				
+				GUI.EndGroup ();
+
+				if(playerNow.source[0]>=woodSource && playerNow.source[1]>=stoneSource){
+					GUI.enabled = true;
+				} else {
+					GUI.enabled = false;
+					
+				}
+				
+				if (GUI.Button (new Rect (Screen.width * 2 / 10, Screen.height * 4 / 10 + Screen.width * 1 / 5, Screen.width * 1 / 5, Screen.width * 1 / 15), "修理", guiSkin.button)) {
+					LevelUp = false;
+					int[] quatity=new int[8]{0,0,0,0,0,0,0,0};
+					playerNow.source[0]-=woodSource;
+					quatity[0]-=woodSource;
+					playerNow.source[1]-=stoneSource;
+					quatity[1]-=stoneSource;
+					sendSourceModify(quatity);
+					HP=HpMax[HouseLevel-1];
+					
+					playerNow.click = false;
+					playerNow.infomationText ("修理完成!");
+					Vector3 Pos = new Vector3 (this.gameObject.transform.position.x - 1, this.gameObject.transform.position.y + 5, this.gameObject.transform.position.z + 1);
+					GameObject animateNow = (GameObject)Instantiate (Building, Pos, Building.transform.rotation);
+					Pos = new Vector3 (this.transform.position.x, this.transform.position.y + 4, this.transform.position.z);
+					
+					GameObject SomkeNow = (GameObject)Instantiate (Smoke, Pos, Building.transform.rotation);
+					Pos = new Vector3 (this.transform.position.x, this.transform.position.y + 4.1f, this.transform.position.z);
+					
+					GameObject SmokeAnimateNow = (GameObject)Instantiate (SmokeAnimation, Pos, Building.transform.rotation);
+					
+					Destroy (animateNow, 5);
+					Destroy (SomkeNow, 5);
+					Destroy (SmokeAnimateNow, 5);
+					Destroy (animateNow, 5);
+					
+				}
+				GUI.enabled = true;
+				
+			} else {
+				playerNow.infomationText ("房屋已經修好了!");	
+				fixedHouse = false;
+				playerNow.click = false;
+			}
+		}//fixedEnd
+
+
 	}
 	
 	

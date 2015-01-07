@@ -12,10 +12,10 @@ public class Source : MonoBehaviour {
 		quatity(數量)
 
 		*/
-	public int kind ,quatity,x,z;
-
+	public int kind ,x,z;
+	public int[] quatity;
 	public bool triggerStatus;
-
+	public string SourceID;
 	public static int output,outputQuataty;
 //	public string Kind { get; set; }
 	// Use this for initialization
@@ -30,19 +30,10 @@ public class Source : MonoBehaviour {
 
 	}
 	void OnTriggerStay(Collider other){
-		if(other.tag == "Player") {
-			output=this.kind;
-			outputQuataty=this.quatity;
-			//print (output);
-		}
-		if (other.tag == "Source") {
-			//資料庫
-			/*
-			DELETE Source
-			Key: x,z
-			*/
-			Destroy(this.gameObject);	
-		}
+
+		/*if (other.tag !="Player" ||other.tag !="Animation" ||other.tag !="bomb" ||other.tag !="Untagged") {
+			Server.Send("3A"+SourceID+"@@@@@");
+		}*/
 	}
 	void OnTriggerExit(Collider toher){
 

@@ -9,9 +9,10 @@ public class House : MonoBehaviour {
 	private int x, z;
 //	private bool player;
 	public Player thisPlayer;
-	public int[] needSource = {200,0,0};
+	private int[] needSource = {200,0,0};
 	public string PlayerID;
 	private GameObject player;
+	private string sendString;
 	
 	// Use this for initialization
 	void Start () {
@@ -19,7 +20,7 @@ public class House : MonoBehaviour {
 
 		this.build = true;
 		this.renderer.material.color =Color.green;
-		player = GameObject.Find (State.name).gameObject;
+		player = GameObject.Find (State.PlayerName).gameObject;
 		thisPlayer = player.GetComponent<Player> ();
 		PlayerID = thisPlayer.PlayerID;
 
@@ -37,6 +38,21 @@ public class House : MonoBehaviour {
 		//}
 
 	}
+	void sendSourceModify(int[] quatity){
+		
+		sendString = "24";
+		for (int i=0; i<quatity.Length; i++) {
+			if(quatity[i]!=0){
+				sendString = "24";
+				sendString+=(i+1).ToString()+","+(quatity[i]).ToString();
+				Server.Send (sendString);
+				print (sendString);
+				
+			}
+		}
+		print (sendString);
+	//	Server.Send (sendString);
+	}
 	void OnGUI(){
 		if (this.build == true) {
 				
@@ -44,30 +60,20 @@ public class House : MonoBehaviour {
 
 				this.transform.parent.collider.enabled=true;
 				//Player thisPlayer = GameObject.Find("Player").gameObject.GetComponent<Player>();
+				int[] quatity=new int[8]{0,0,0,0,0,0,0,0};
 				for(int i =0;i<=2;i++){
+					quatity[i]=-1*needSource[i];
 					thisPlayer.source[i]=thisPlayer.source[i]-needSource[i];
 				}
-				//資料庫
-				/*
-				INSERT House
-				Key:PlayerID
-				欄位：
-				PlayerID
-				x,z(屋子的座標)
+				sendSourceModify(quatity);
 
-				UPDATE Player
-				欄位：
-				source[0]=player.source[0](wood)
-				source[1]=player.source[1](stone)
-				source[2]=player.source[2](metal)
-				*/
+				Server.Send("551,"+x+","+z);
 				thisPlayer.infomationText("The House is Build");
 			//	thisPlayer.infotext="The House is Build";
 			//	thisPlayer.info=true;
 			//	thisPlayer.infoTime=Time.time;
-				HouseLevelUp thisParent= this.transform.parent.GetComponent<HouseLevelUp>();
-				thisParent.PlayerID=PlayerID;
 
+				build thisParent= this.transform.parent.GetComponent<build>();
 				thisPlayer.click=false;
 				build = false;
 				Vector3 Pos=new Vector3(this.transform.position.x-1,this.transform.position.y+5,this.transform.position.z+1);
@@ -79,11 +85,13 @@ public class House : MonoBehaviour {
 				
 				GameObject SmokeAnimateNow=(GameObject) Instantiate(thisParent.SmokeAnimation,Pos,thisParent.Building.transform.rotation);
 				
-				Destroy(animateNow,3);
-				Destroy(SomkeNow,3);
-				Destroy(SmokeAnimateNow,3);
-				Destroy(this.gameObject);
+				Destroy(animateNow,5);
+				Destroy(SomkeNow,5);
+				Destroy(SmokeAnimateNow,5);
+				Destroy (this.transform.parent.gameObject,2);
 				
+				Destroy(this.gameObject);
+
 
 			}			
 		}

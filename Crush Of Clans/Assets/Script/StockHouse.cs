@@ -188,7 +188,7 @@ public class StockHouse : MonoBehaviour {
 			GUI.EndGroup();
 			//vSliderValue=(playerNow.source[selectSource])>0?playerNow.source[selectSource]:0;
 			playerSource=playerNow.source [selectSource];
-			limit=playerNow.package[playerNow.cart]-playerNow.source[1]*playerNow.weight[1]-playerNow.source[2]*playerNow.weight[2];
+//			limit=playerNow.package[playerNow.cart]-playerNow.source[1]*playerNow.weight[1]-playerNow.source[2]*playerNow.weight[2];
 			if(HouseLevel>=needLevel[selectSource]){
 				GUI.enabled=true;
 			}else{

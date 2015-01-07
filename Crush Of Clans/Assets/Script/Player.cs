@@ -24,25 +24,26 @@ public class Player : MonoBehaviour {
 
 	//status
 	public Texture[] FunctionButton;
-	public Texture Bag,Fixed,BombPng,UpGrade,Black,Construction;
+	public Texture Bag,Fixed,BombPng,UpGrade,Black,Construction,tool1_0,tool1_1,tool2_0,tool2_1,wood,stone,metal,pulfur,cone,firePng,metalmine,pulfurmine;
+	public Texture[] BombPngLarge;
 	public GUISkin guiSkin;
 	public string PlayerID="000";//
 	private float picktime,GameTime,BombTimeCount;
 	public float infoTime;
-	public int tool,cart,toolKind,toolHp,bombKind;//
+	public int tool,cart,toolKind,toolHp,bombKind,selectPutSource;//
 	public int[] toolBomb ={0,0,0};//
 	public int j,w,h;
 	private int Status,Process;//0無狀態可蓋房子、 1採資源、2倉庫、3工作屋、4精煉屋、5裝炸彈 6"UpGrade" 
 	public  int[] source;//
 	private string[] sourceName={"木頭","石頭","鐵片","硫磺","木炭","火藥","鐵礦","硫磺礦"};
-	private string[] BombInfo = {"威力：50 範圍：單一","威力：100 範圍：九宮格","威力：200 範圍：連鎖"};
+	private string[] BombInfo = {"威力：400 範圍：單一","威力：800 範圍：九宮格","威力：1000 範圍：連鎖"};
 	
 	//public  string[] sourceName={"wood","stone","metal","XX","YY"};//0 wood, 1 stone ,2 metal;
-	public int[] weight;// = {5,10,50};//0 wood, 1 stone ,2 metal;
+	private int[] weight={5,10,20,10,10,10,30,30};// = {5,10,50};//0 wood, 1 stone ,2 metal;
 	public int[] bombWeight;
 	public int[,] toolWeight;
 	public int x,y,z;//
-	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,GetPosition=false,isHomeExsist=false,BombSelect=false;
+	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,GetPosition=false,isHomeExsist=false,BombSelect=false,put=false;
 	private Rigidbody BuildNow;
 	private GameObject PickSource,TriggerHouse,DestroyHouse;
 	public GameObject fire,Building,GetStone,GetWood,Smoke,SmokeAnimation,BombAnimation,BombObjectS ,BombObjectM ,BombObjectL;
@@ -55,7 +56,7 @@ public class Player : MonoBehaviour {
 	private char[] BombGame={'1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','I','M','N','O','P'};
 	private char[] GameQ = {'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x'};
 	private int[] BombGameTime = {5,20,50,10};
-	private int[] pick = {10,30};//{{5,5,10,15},{10,20,30,40},{20,40,60,80},{30,60,90,120}};
+	private int[,] pick = {{5,10},{20,40},{20,40}};//{{5,5,10,15},{10,20,30,40},{20,40,60,80},{30,60,90,120}};
 	private int[] BombGameButton = {4,9,16,25};
 
 	private string BombGameQ,BombGameInput;
@@ -63,9 +64,10 @@ public class Player : MonoBehaviour {
 	private string[] toolName={"手","十字鎬","斧頭","炸彈"};
 	private string[] cartName={"手","推車"};
 	public int[] package;// = {1000,2000};
-	private int[] CDtime = {2,2,2,2};
+	private int[,] CDtime = {{3,3},{2,1},{2,1}};
 	public int weightNow;
-
+	private int limit=0;
+	private string PutQuatity="0";
 	
 	//控制移動
 	public bool move_flag = false;
@@ -84,7 +86,19 @@ public class Player : MonoBehaviour {
 	
 	
 
-	
+	void sendSourceModify(int[] quatity){
+		
+		string sendString = "24";
+		for (int i=0; i<quatity.Length; i++) {
+			if(quatity[i]!=0){
+				sendString = "24";
+				sendString+=(i+1).ToString()+","+(quatity[i]).ToString();
+				Server.Send (sendString);
+				print (sendString);
+			}
+		}
+		
+	}
 	public void Send(string strSend)
 	{
 		byte[] byteSend = new byte[1024];
@@ -109,20 +123,20 @@ public class Player : MonoBehaviour {
 	/// ///////////////////
 	
 	// Use this for initialization
-	IEnumerator server_function(){
+	/*IEnumerator server_function(){
 		while (true) {
-			yield return new WaitForSeconds (3);
+			yield return new WaitForSeconds (1);
 			Server.Send ("41"+x+","+z+"@@@@@");
 		}
-	}
+	}*/
 	void Start () {
 
 		BombSelect = false;
 		GetPosition = false;
-
+		selectPutSource = 0;
 		Process = 10;
 		
-
+		put = false;
 		bag=false;
 		info = false;
 		weightNow = 0;
@@ -132,7 +146,8 @@ public class Player : MonoBehaviour {
 		Status = 0;
 		Build=false;
 		click = false;
-
+		limit = 0;
+		PutQuatity="0";
 		picktime=Time.time-5;
 		BombTimeCount = Time.time - 6;
 		BombGameStart = false;
@@ -143,14 +158,16 @@ public class Player : MonoBehaviour {
 		for (int i=0; i<8; i++) {
 			source[i]=State.source[i];		
 		}
-		PlayerID = State.name;
-		StartCoroutine("server_function");
+		PlayerID = State.PlayerName;
+		//StartCoroutine("server_function");
 		
 	}
 	
 	// Update is called once per frame
 	void Update () {
-
+		for (int i=0; i<8; i++) {
+			source[i]=State.source[i];		
+		}
 		if (Trigger_ob == null) {
 			Status=0;
 			move_flag=false;
@@ -292,12 +309,12 @@ public class Player : MonoBehaviour {
 
 		if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
 			Server.ConnectToServer();
-			Send("10singo,singo@@@@@");
+			Send("10singo,singo");
 		}
 		if (GUILayout.Button ("Send", GUILayout.Height(50))) {
 			
-			Send("31@@@@@");
-			Send("32@@@@@");
+			Send("31");
+			Send("32");
 
 		}
 		if(GUILayout.Button("Close")){
@@ -322,29 +339,47 @@ public class Player : MonoBehaviour {
 			if(info==false ){
 				GUI.Label(new Rect(screenPosition.x-50,screenPosition.y,100,100),PlayerID,guiSkin.label);
 			
-				if (((Status >= 1 && Status <= 4) || Status == 6)&& Trigger_ob!=null) {
+				//if (((Status >= 1 && Status <= 4) || Status == 6 ||Status==7 )&& Trigger_ob!=null) {
+				if (Status!=0 && Trigger_ob!=null) {
+				
 					worldPosition = new Vector3 (Trigger_ob.transform.position.x, Trigger_ob.transform.position.y + Trigger_ob.collider.bounds.size.y, Trigger_ob.transform.position.z);
 					screenPosition = transform.FindChild ("Main Camera").camera.WorldToScreenPoint (worldPosition);
 					screenPosition.y = Screen.height - screenPosition.y;
 					if (Status == 1) {
 						Source data = Trigger_ob.GetComponent<Source> ();
-						GUI.Label (new Rect (screenPosition.x, screenPosition.y, 100, 100), Trigger_ob.name + "\n" + data.quatity,guiSkin.label);
+							if(data.kind==0){
+								GUI.Label (new Rect (screenPosition.x, screenPosition.y, 100, 100), sourceName [data.kind] + "\n" + data.quatity[0],guiSkin.customStyles[5]);
+							}else{
+								GUI.Label (new Rect (screenPosition.x, screenPosition.y, 100, 100), sourceName [1] + ":" + data.quatity[0]+ "\n" +sourceName [6] + ":" + data.quatity[1]+ "\n"+sourceName [7] + ":" + data.quatity[2] ,guiSkin.customStyles[5]);
+								
+							}
 					} else if (Status == 2) {
 						build data = Trigger_ob.GetComponent<build> ();
-						GUI.Label (new Rect (screenPosition.x, screenPosition.y, 100, 100), data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.label);
+						GUI.Label (new Rect (screenPosition.x, screenPosition.y, 100, 100), data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.customStyles[5]);
 					} else if (Status == 3) {
 						build data = Trigger_ob.GetComponent<build>();
-								GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.label);
+							GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.customStyles[5]);
 					} else if (Status == 4) {
 						build data = Trigger_ob.GetComponent<build>();
-								GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.label);
-					} else if (Status == 6) {
+							GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.customStyles[5]);
+					} else if (Status == 5) {
 						build data = Trigger_ob.GetComponent<build>();
-						GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.label);
-					}else if (Status == 7) {
-								build data = Trigger_ob.GetComponent<build>();
-								GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.label);
-					}
+							GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.customStyles[7]);
+						//	GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.customStyles[5]);
+						} else if (Status == 6) {
+							build data = Trigger_ob.GetComponent<build>();
+							GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.customStyles[5]);
+							//	GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.customStyles[5]);
+
+						}else if (Status == 7) {
+							build data = Trigger_ob.GetComponent<build>();
+							GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.customStyles[5]);
+							//GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.customStyles[5]);
+						}else if (Status == 8) {
+							build data = Trigger_ob.GetComponent<build>();
+							GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),data.HouseName[data.kind] + " Lv" + data.HouseLevel + "\n" + data.PlayerID + "\nHp" + data.HP,guiSkin.customStyles[5]);
+							//GUI.Label(new Rect(screenPosition.x,screenPosition.y,100,100),Trigger_ob.tag + "\n" + data.PlayerID,guiSkin.customStyles[5]);
+						}
 
 				}
 				}
@@ -354,63 +389,87 @@ public class Player : MonoBehaviour {
 		if (bag == true) {
 			GUI.BeginGroup(new Rect (Screen.width/10, Screen.height/10, Screen.width*4/5, Screen.height*4/5));
 			GUI.Box (new Rect (0,0, Screen.width*4/5, Screen.height*4/5), "", guiSkin.box);
-			GUI.Box (new Rect (Screen.width/10,Screen.height/16, Screen.width*1/5, Screen.width*1/5),Bag, guiSkin.box);
+				if(tool==1 && toolKind==0){
+					GUI.Box (new Rect (Screen.width/10,Screen.height/16, Screen.width*1/5, Screen.width*1/5),tool1_0, guiSkin.box);
+					
+				}else if(tool==1 && toolKind==1){
+					GUI.Box (new Rect (Screen.width/10,Screen.height/16, Screen.width*1/5, Screen.width*1/5),tool1_1, guiSkin.box);
+					
+				}else if(tool==2 && toolKind==0){
+					GUI.Box (new Rect (Screen.width/10,Screen.height/16, Screen.width*1/5, Screen.width*1/5),tool2_0, guiSkin.box);
+					
+				}else if(tool==2 && toolKind==1){
+					GUI.Box (new Rect (Screen.width/10,Screen.height/16, Screen.width*1/5, Screen.width*1/5),tool2_1, guiSkin.box);
+					
+				}else{
+					GUI.Box (new Rect (Screen.width/10,Screen.height/16, Screen.width*1/5, Screen.width*1/5),"無裝備工具", guiSkin.box);
+					
+				}
 			//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
-			GUI.Label (new Rect (Screen.width/10+Screen.width*1/20,Screen.height*9/20, Screen.width*1/10, Screen.width*1/5), "採集量："+pick[toolKind], guiSkin.label);
+			GUI.Label (new Rect (Screen.width/10+Screen.width*1/20,Screen.height*9/20, Screen.width*1/10, Screen.width*1/5), "採集量："+pick[tool,toolKind], guiSkin.label);
 			GUI.Label (new Rect (Screen.width/10,Screen.height*9/20+Screen.width*1/10, Screen.width*1/5, Screen.width*1/5),"重量:"+weightNow+"/"+package[cart], guiSkin.label);
 			//GUI.Label (new Rect (Screen.width*3/8, Screen.height* 9/ 16 , Screen.width/3, Screen.height/8 ), "", guiSkin.label);
-			
-				GUI.Label (new Rect (Screen.width*6/16, Screen.height* 3/ 26 , Screen.width/8, Screen.height/16 ), source[0].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 1/ 13 , Screen.width/12, Screen.height/8 ),sourceName[0],guiSkin.customStyles[3])){
-					
+				if(selectPutSource==0 ||put==true)GUI.enabled=false;else GUI.enabled=true;
+				GUI.Label (new Rect (Screen.width*6/16, Screen.height* 3/ 26 , Screen.width/8, Screen.height/16 ), source[0].ToString(),guiSkin.customStyles[4]);
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 1/ 13 , Screen.width/12, Screen.height/8 ),wood,guiSkin.customStyles[6])){
+					selectPutSource=0;
 					
 				}
+				if(selectPutSource==1||put==true)GUI.enabled=false;else GUI.enabled=true;
 				GUI.Label (new Rect (Screen.width*9/16, Screen.height* 3/ 26 , Screen.width/8, Screen.height/16 ), source[1].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 1/ 13 , Screen.width/12, Screen.height/8 ),sourceName[1],guiSkin.customStyles[3])){
+				
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 1/ 13 , Screen.width/12, Screen.height/8 ),stone,guiSkin.customStyles[6])){
 
-					
+					selectPutSource=1;
 					
 				}
+				if(selectPutSource==2||put==true)GUI.enabled=false;else GUI.enabled=true;
 				GUI.Label (new Rect (Screen.width*6/16, Screen.height* 7/ 26 , Screen.width/8, Screen.height/16 ), source[2].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 3/ 13 , Screen.width/12, Screen.height/8 ),sourceName[2],guiSkin.customStyles[3])){
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 3/ 13 , Screen.width/12, Screen.height/8 ),metal,guiSkin.customStyles[6])){
+				
 
-					
+					selectPutSource=2;
 					
 				}
+				if(selectPutSource==3||put==true)GUI.enabled=false;else GUI.enabled=true;
 				GUI.Label (new Rect (Screen.width*9/16, Screen.height* 7/ 26 , Screen.width/8, Screen.height/16 ), source[3].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 3/ 13 , Screen.width/12, Screen.height/8 ),sourceName[3],guiSkin.customStyles[3])){
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 3/ 13 , Screen.width/12, Screen.height/8 ),pulfur,guiSkin.customStyles[6])){
 
-					
+					selectPutSource=3;
 					
 				}
+				if(selectPutSource==4||put==true)GUI.enabled=false;else GUI.enabled=true;
 				GUI.Label (new Rect (Screen.width*6/16, Screen.height*11/ 26 , Screen.width/8, Screen.height/16 ), source[4].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 5/ 13 , Screen.width/12, Screen.height/8 ),sourceName[4],guiSkin.customStyles[3])){
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 5/ 13 , Screen.width/12, Screen.height/8 ),cone,guiSkin.customStyles[6])){
 
-					
+					selectPutSource=4;
 					
 				}
+				if(selectPutSource==5||put==true)GUI.enabled=false;else GUI.enabled=true;
 				GUI.Label (new Rect (Screen.width*9/16, Screen.height* 11/ 26 , Screen.width/8, Screen.height/16 ), source[5].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 5/ 13 , Screen.width/12, Screen.height/8 ),sourceName[5],guiSkin.customStyles[3])){
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 5/ 13 , Screen.width/12, Screen.height/8 ),firePng,guiSkin.customStyles[6])){
 
-					
+					selectPutSource=5;
 				}
+				if(selectPutSource==6||put==true)GUI.enabled=false;else GUI.enabled=true;
 				GUI.Label (new Rect (Screen.width*6/16, Screen.height* 15/ 26 , Screen.width/8, Screen.height/16 ), source[6].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 7/ 13 , Screen.width/12, Screen.height/8 ),sourceName[6],guiSkin.customStyles[3])){
-
+				if(GUI.Button (new Rect (Screen.width*5/16, Screen.height* 7/ 13 , Screen.width/12, Screen.height/8 ),metalmine,guiSkin.customStyles[6])){
+					selectPutSource=6;
 					
 				}
+				if(selectPutSource==7||put==true)GUI.enabled=false;else GUI.enabled=true;
 				GUI.Label (new Rect (Screen.width*9/16, Screen.height*15/ 26 , Screen.width/8, Screen.height/16 ), source[7].ToString(),guiSkin.customStyles[4]);
 				
-				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 7/ 13 , Screen.width/12, Screen.height/8 ),sourceName[7],guiSkin.customStyles[3])){
+				if(GUI.Button (new Rect (Screen.width*8/16, Screen.height* 7/ 13 , Screen.width/12, Screen.height/8 ),pulfurmine,guiSkin.customStyles[6])){
 
-					
+					selectPutSource=7;
 					
 				}
 
@@ -418,10 +477,75 @@ public class Player : MonoBehaviour {
 			if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
 				bag = false;
 				click=false;
+					put=false;
 			}
 			GUI.EndGroup();
 			
-			
+
+				
+				if (GUI.Button (new Rect (Screen.width * 6 / 20, Screen.height * 4 / 10 + Screen.width * 1 / 5, Screen.width * 1 / 8, Screen.width * 1 / 15), "丟棄", guiSkin.button)) {
+					put = true;
+					limit=0;
+					PutQuatity="0";
+				}
+				GUI.enabled = true;
+				if (put == true) {
+					GUI.Box (new Rect (Screen.width / 2 - (Screen.width / 4), Screen.height / 2 - (Screen.height / 4), Screen.width / 2, Screen.height / 2), "", guiSkin.box);
+					PutQuatity = GUI.TextField (new Rect (Screen.width*7/16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 8, Screen.height * 1 / 12), PutQuatity, guiSkin.textField);
+					if (GUI.Button (new Rect (Screen.width * 5 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), "<<", guiSkin.button)) {
+
+
+						PutQuatity = "0";
+						 
+					}
+					if (GUI.Button (new Rect (Screen.width * 6 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), "<", guiSkin.button)) {
+						if (int.Parse (PutQuatity) > 0) {
+						
+
+							PutQuatity = ((int.Parse (PutQuatity)) - 1).ToString ();
+							
+						}
+						
+					}
+					if (GUI.Button (new Rect (Screen.width * 10 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), ">>", guiSkin.button)) {
+						if (put == true) {
+							PutQuatity=source[selectPutSource].ToString();
+						}
+
+						
+					}
+					if (GUI.Button (new Rect (Screen.width * 9 / 16, Screen.height / 2 - Screen.height * 1 / 24, Screen.width * 1 / 16, Screen.height * 1 / 12), ">", guiSkin.button)) {
+						if (put == true) {
+							
+							limit = source [selectPutSource];
+
+						}
+
+						if (int.Parse (PutQuatity) < limit) {
+							PutQuatity = ((int.Parse (PutQuatity)) + 1).ToString ();
+						}
+					}
+					int[] quatity=new int[8]{0,0,0,0,0,0,0,0};
+					if (GUI.Button (new Rect (Screen.width * 8 / 20, Screen.height / 2 + Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 10), "確定", guiSkin.button)) {
+
+						if (put == true) {
+							quatity[0]= -1*int.Parse (PutQuatity);
+							
+							source [selectPutSource] = source [selectPutSource] - int.Parse (PutQuatity);
+							
+						}
+						sendSourceModify(quatity);
+						PutQuatity = "0";
+
+						put = false;
+					}
+					
+					if (GUI.Button (new Rect (Screen.width * 10 / 20, Screen.height / 2 + Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 10), "取消", guiSkin.button)) {
+						PutQuatity = "0";
+						limit=0;
+						put = false;
+					}
+				}
 		}
 		
 		///Bag/////end
@@ -439,7 +563,7 @@ public class Player : MonoBehaviour {
 		if(BombSelected==true){ 
 				GUI.Box (new Rect (0, Screen.height / 5, Screen.width, Screen.height / 10),"選擇目標",guiSkin.box);
 				
-				if(Status!=2 && Status!=3&&Status!=4&&Status!=6&&Status!=7){
+				if(Status==0 ||Status==1){
 					GUI.enabled=false;
 				}else{
 					GUI.enabled=true;
@@ -558,7 +682,7 @@ public class Player : MonoBehaviour {
 				}
 				if (j>=9){
 					DestroyHouse=TriggerHouse;
-						Instantiate(BombObjectM,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectS.transform.rotation);
+						Instantiate(BombObjectM,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectM.transform.rotation);
 						
 					click=false;
 					Bomb=false;
@@ -592,7 +716,7 @@ public class Player : MonoBehaviour {
 				}
 				if (j>=16){
 						DestroyHouse=TriggerHouse;
-						Instantiate(BombObjectL,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectS.transform.rotation);
+						Instantiate(BombObjectL,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectL.transform.rotation);
 						
 						click=false;
 					Bomb=false;
@@ -622,14 +746,15 @@ public class Player : MonoBehaviour {
 				BombSelect = true;
 				click=true;
 			}
-				if(Status==1 &&Time.time-picktime<CDtime[toolKind]){
+				if(Status==1 &&Time.time-picktime<CDtime[tool,toolKind]){
 					GUI.enabled=false;
 				}else{
 					GUI.enabled=true;
 					
 				}
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),FunctionButton[Status],guiSkin.customStyles[3])){
-				
+					float randomKind=0f;
+					//randomKind=Random.value;
 				switch (Status){
 				case 0://build a house
 					
@@ -639,71 +764,157 @@ public class Player : MonoBehaviour {
 				case 1:			
 					//採集放這邊
 					//source++;
-					if(Time.time-picktime>CDtime[toolKind] && weightNow < package[cart]){
+					if(Time.time-picktime>CDtime[tool,toolKind] && weightNow < package[cart]){
+						
+						
+							
 						Source pickup=PickSource.GetComponent<Source>();					
 						int kind=pickup.kind;
+							/*if(kind==1){
+								System.Random r = new System.Random();
+								randomKind=r.Next(100);
+								print (randomKind.ToString());
+								if(randomKind<=20) kind=6;
+								else if(randomKind>20&&randomKind<=30) kind=7;
+								else kind=1;
+							}*/
+							print (kind.ToString());
 						if(tool==0||kind+1==tool ){
-							int quatity=pickup.quatity;
+							int[] quatity=pickup.quatity;
 							int sourceWeight=weight[kind];
-							int getQutity;
-							print (quatity);
-							if(quatity<=pick[toolKind]){
-								if(package[cart]-weightNow-(quatity*sourceWeight)<0){
+							int[] getQutity = new int[3];
+							//print (quatity);
+								if(kind==0){
+									if(quatity[0]<=pick[tool,toolKind]){
+										if(package[cart]-weightNow-(quatity[0]*weight[kind])<0){
+											
+											getQutity[0] = (package[cart]-weightNow)/weight[kind];
+											source[kind]+=getQutity[0];
+											//pickup.quatity[0]-=getQutity[0];
+											//weightNow+=getQutity*sourceWeight;
+										}else{
+											getQutity[0]=quatity[0];
+											
+											source[kind]+=quatity[0];
+											//pickup.quatity[0]-=quatity[0];
 
-									getQutity = (package[cart]-weightNow)/sourceWeight;
-									source[kind]+=getQutity;
-									pickup.quatity-=getQutity;
-									//weightNow+=getQutity*sourceWeight;
-								}else{
-									getQutity=quatity;
+										}
+										
+									}else{
+										if(package[cart]-weightNow-(pick[tool,toolKind]*weight[kind])<0){
+											getQutity[0] = (package[cart]-weightNow)/weight[kind];
+											source[kind]+=getQutity[0];
+										//	pickup.quatity[0]-=getQutity[0];
+											//weightNow+=getQutity*sourceWeight;
+											
+										}else{
+											getQutity[0]=pick[tool,toolKind];
+											source[kind]+=pick[tool,toolKind];
+										//	pickup.quatity[0]-=pick[tool,toolKind];
+											//	weightNow+=pick[tool]*sourceWeight;
+											
+										}
+									}
+									Server.Send ("46"+pickup.SourceID);
 									
-									source[kind]+=quatity;
-									pickup.quatity-=quatity;
-									//weightNow+=quatity*sourceWeight;
-									//資料庫
-									/*
-								DELETE Source
-								Key: x=pickup.x , z=pickup.z
-								*/
-									Destroy(PickSource.gameObject);
+								infomationText("取得 "+getQutity[0].ToString()+" "+sourceName[kind]+" !");
+
+								}else{
+									if(quatity[0]+quatity[1]+quatity[2]<=pick[tool,toolKind]){
+										if(package[cart]-weightNow-(quatity[0]*weight[1]+quatity[1]*weight[6]+quatity[2]*weight[7])<0){
+											
+											getQutity[0] = (package[cart]-weightNow)/weight[kind];
+											getQutity[1] = (package[cart]-weightNow)/weight[kind];
+											getQutity[2] = (package[cart]-weightNow)/weight[kind];
+											getQutity[0]=(int)(getQutity[0]*quatity[0]/(quatity[0]+quatity[1]+quatity[2]));
+											getQutity[1]=(int)(getQutity[1]*quatity[1]/(quatity[0]+quatity[1]+quatity[2]));
+											getQutity[2]=(int)(getQutity[2]*quatity[2]/(quatity[0]+quatity[1]+quatity[2]));
+
+											source[1]+=getQutity[0];
+											source[6]+=getQutity[1];
+											source[7]+=getQutity[2];
+
+											//pickup.quatity[0]-=(int)(getQutity[0]*quatity[0]/(quatity[0]+quatity[1]+quatity[2]));
+											//pickup.quatity[1]-=(int)(getQutity[1]*quatity[1]/(quatity[0]+quatity[1]+quatity[2]));
+											//pickup.quatity[2]-=(int)(getQutity[2]*quatity[2]/(quatity[0]+quatity[1]+quatity[2]));
+											//weightNow+=getQutity*sourceWeight;
+										}else{
+											getQutity[0]=quatity[0];
+											getQutity[1]=quatity[1];
+											getQutity[2]=quatity[2];
+											source[1]+=(int)quatity[0];
+											source[6]+=(int)quatity[1];
+											source[7]+=(int)quatity[2];
+											//pickup.quatity[0]-=(int)quatity[0];
+											//pickup.quatity[1]-=(int)quatity[1];
+											//pickup.quatity[2]-=(int)quatity[2];
+
+											
+										}
+										
+									}else{
+										if(package[cart]-weightNow-(pick[tool,toolKind]*weight[kind])<0){
+											getQutity[0] = (package[cart]-weightNow)/weight[kind];
+											getQutity[1] = (package[cart]-weightNow)/weight[kind];
+											getQutity[2] = (package[cart]-weightNow)/weight[kind];
+											getQutity[0]=(int)(getQutity[0]*quatity[0]/(quatity[0]+quatity[1]+quatity[2]));
+											getQutity[1]=(int)(getQutity[1]*quatity[1]/(quatity[0]+quatity[1]+quatity[2]));
+											getQutity[2]=(int)(getQutity[2]*quatity[2]/(quatity[0]+quatity[1]+quatity[2]));
+											
+											source[1]+=getQutity[0];
+											source[6]+=getQutity[1];
+											source[7]+=getQutity[2];
+											
+											//pickup.quatity[0]-=(int)(getQutity[0]*quatity[0]/(quatity[0]+quatity[1]+quatity[2]));
+											//pickup.quatity[1]-=(int)(getQutity[1]*quatity[1]/(quatity[0]+quatity[1]+quatity[2]));
+											//pickup.quatity[2]-=(int)(getQutity[2]*quatity[2]/(quatity[0]+quatity[1]+quatity[2]));
+											//weightNow+=getQutity*sourceWeight;
+											
+										}else{
+
+
+											getQutity[0]=(int)(pick[tool,toolKind]*quatity[0]/(quatity[0]+quatity[1]+quatity[2]));
+											getQutity[1]=(int)(pick[tool,toolKind]*quatity[1]/(quatity[0]+quatity[1]+quatity[2]));
+											getQutity[2]=(int)(pick[tool,toolKind]*quatity[2]/(quatity[0]+quatity[1]+quatity[2]));
+											
+											source[1]+=getQutity[0];
+											source[6]+=getQutity[1];
+											source[7]+=getQutity[2];
+											
+											//pickup.quatity[0]-=(int)(pick[tool,toolKind]*quatity[0]/(quatity[0]+quatity[1]+quatity[2]));
+											//pickup.quatity[1]-=(int)(pick[tool,toolKind]*quatity[1]/(quatity[0]+quatity[1]+quatity[2]));
+											//pickup.quatity[2]-=(int)(pick[tool,toolKind]*quatity[2]/(quatity[0]+quatity[1]+quatity[2]));
+
+										
+											//	weightNow+=pick[tool]*sourceWeight;
+											
+										}
+									}
+									Server.Send ("46"+pickup.SourceID);
+									infomationText("取得 "+getQutity[0].ToString()+sourceName[1]+" "+getQutity[1].ToString()+sourceName[6]+" "+getQutity[2].ToString()+" "+sourceName[7]+" !");
 									
 								}
-								
-							}else{
-								if(package[cart]-weightNow-(pick[toolKind]*sourceWeight)<0){
-									getQutity = (package[cart]-weightNow)/sourceWeight;
-									source[kind]+=getQutity;
-									pickup.quatity-=getQutity;
-									//weightNow+=getQutity*sourceWeight;
-									
-								}else{
-									getQutity=pick[toolKind];
-									source[kind]+=pick[toolKind];
-									pickup.quatity-=pick[toolKind];
-									//	weightNow+=pick[tool]*sourceWeight;
-									
-								}
-							}
+
+							
 
 								if(kind==0){
 									Vector3 Pos=new Vector3(PickSource.transform.position.x-1,PickSource.transform.position.y+5,PickSource.transform.position.z+1);
 									GameObject animateNow=(GameObject) Instantiate(GetWood,Pos,GetWood.transform.rotation);
-									Destroy(animateNow,3);
+									Destroy(animateNow,2);
 								}else{
 									Vector3 Pos=new Vector3(PickSource.transform.position.x-1,PickSource.transform.position.y+5,PickSource.transform.position.z+1);
 									
 									GameObject animateNow=(GameObject) Instantiate(GetStone,Pos,GetWood.transform.rotation);
-									Destroy(animateNow,3);
+									Destroy(animateNow,2);
 									
 								}
-								infomationText("取得 "+getQutity.ToString()+" "+sourceName[kind]+" !");
 							
 							////////資料庫
 							/*
 						UPDATE Player
 						key: PlayerID
 						欄位：
-						source[0]=source[0](wood)
+						source[0]=source[0](wood
 						source[1]=source[1](stone)
 						source[2]=source[2](metal)
 						(可以再加其他你想到資源種類)
@@ -714,7 +925,7 @@ public class Player : MonoBehaviour {
 
 						*/
 							picktime=Time.time;
-						}
+							}
 						}else{
 							infomationText("超過負載!");
 							
@@ -755,7 +966,7 @@ public class Player : MonoBehaviour {
 				
 			}
 
-			if(Status==0||Status==1||Status==7){
+			if(Status==0||Status==1||Status==7||Status==5){
 				GUI.enabled=false;//buttonEnable=false;
 			}else{
 				GUI.enabled=true;
@@ -790,7 +1001,9 @@ public class Player : MonoBehaviour {
 					}
 			}
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6-Screen.width*2/10, Screen.height-Screen.height/5, Screen.width/10, Screen.height/6 ),Fixed,guiSkin.customStyles[3])){
-				
+					build HomeNow = TriggerHouse.GetComponent<build>();
+					HomeNow.fixedHouse=true;
+					click=true;
 			}
 				GUI.enabled=true;
 
@@ -813,7 +1026,7 @@ public class Player : MonoBehaviour {
 				GUI.BeginGroup(new Rect (Screen.width*3/60,Screen.height/20, Screen.width*7/30, Screen.height*7/10));
 				
 				GUI.Box (new Rect (0, 0,Screen.width*7/30, Screen.height*7/10), "", guiSkin.box);
-				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), Construction, guiSkin.box);
+				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), BombPngLarge[0], guiSkin.box);
 				GUI.Label (new Rect (Screen.width*1/22,Screen.height*7/20, Screen.width*2/14, Screen.width*2/14), BombInfo[0]+ "\r\n攜帶量:"+toolBomb[0], guiSkin.label);
 				if(toolBomb[0]==0){
 					GUI.enabled=false;
@@ -833,7 +1046,7 @@ public class Player : MonoBehaviour {
 				GUI.BeginGroup(new Rect (Screen.width*17/60,Screen.height/20, Screen.width*7/30, Screen.height*7/10));
 				
 				GUI.Box (new Rect (0, 0,Screen.width*7/30, Screen.height*7/10), "", guiSkin.box);
-				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), Construction, guiSkin.box);
+				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), BombPngLarge[1], guiSkin.box);
 				GUI.Label (new Rect (Screen.width*1/22,Screen.height*7/20, Screen.width*2/14, Screen.width*2/14), BombInfo[1]+ "\r\n攜帶量:"+toolBomb[1], guiSkin.label);
 				if(toolBomb[1]==0){
 					GUI.enabled=false;
@@ -854,7 +1067,7 @@ public class Player : MonoBehaviour {
 				GUI.BeginGroup(new Rect (Screen.width*31/60,Screen.height/20, Screen.width*7/30, Screen.height*7/10));
 				
 				GUI.Box (new Rect (0, 0,Screen.width*7/30, Screen.height*7/10), "", guiSkin.box);
-				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), Construction, guiSkin.box);
+				GUI.Box (new Rect (Screen.width*1/22,Screen.width*1/50, Screen.width*2/14, Screen.width*2/14), BombPngLarge[2], guiSkin.box);
 				GUI.Label (new Rect (Screen.width*1/22,Screen.height*7/20, Screen.width*2/14, Screen.width*2/14), BombInfo[2]+ "\r\n攜帶量:"+toolBomb[2], guiSkin.label);
 				if(toolBomb[2]==0){
 					GUI.enabled=false;
@@ -993,9 +1206,17 @@ public class Player : MonoBehaviour {
 		case "Struction":
 			Status = 7;
 			TriggerHouse=other.gameObject;
+						//	print ("7");
+			
+			break;
+		case "B101":
+			Status = 8;
+			TriggerHouse=other.gameObject;
+			//	print ("7");
 			
 			break;
 		default:
+
 			Status = 0;
 			break;
 		}
