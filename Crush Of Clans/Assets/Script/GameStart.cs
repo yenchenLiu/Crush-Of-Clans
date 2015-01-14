@@ -37,6 +37,8 @@ public class GameStart : MonoBehaviour {
 			Server.Send("21");
 			Server.Send("22");//Position
 			Server.Send("23");//source
+			Server.Send("25");//Tool
+			Server.Send("27");//Bomb
 			PlayerPrefs.SetString ("id",id);
 			//CONNECT SERVER
 			//PlayerPrefs.SetString ("password",password);
@@ -107,14 +109,14 @@ public class GameStart : MonoBehaviour {
 
 
 
-			}
+			}/*
 			if (GUI.Button (new Rect (Screen.width*1/2+Screen.width*1/8, Screen.height*2/3-Screen.height*1/30, Screen.width*1/6, Screen.height*1/10),"註冊",guiSkin.button)) {
 				
 				StartCoroutine("sign_function");
 				
 
 				
-			}
+			}*/
 
 			//GUI.EndGroup();
 		}

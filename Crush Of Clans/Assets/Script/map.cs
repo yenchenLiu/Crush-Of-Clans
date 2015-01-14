@@ -14,7 +14,7 @@ public class map : MonoBehaviour {
 	private GameObject NewSource,PlayerGameObject;
 	public GameObject joy;
 	public Rigidbody BuildNow,AnotherPlayer,AnotherPlayerNow,SourceNow;
-	public GameObject Building,Smoke,SmokeAnimation,BombObject,BombAnimation,Treasure;
+	public GameObject Building,Smoke,SmokeAnimation,BombObject,BombAnimation,Treasure,BigBomb;
 	
 	public Rigidbody[] source={null,null};//wood,stone;
 	public Rigidbody[] build;
@@ -107,13 +107,13 @@ public class map : MonoBehaviour {
 
 			while (true) {
 				Server.Send("31");
-				yield return new WaitForSeconds(0.5f);	
+				yield return new WaitForSeconds(0.2f);	
 			
 				Server.Send("32");
-				yield return new WaitForSeconds(0.5f);	
+				yield return new WaitForSeconds(0.2f);	
 			
 				Server.Send("33");
-				yield return new WaitForSeconds(0.5f);
+				yield return new WaitForSeconds(0.2f);
 			//	Server.Send ("23");
 			//try{		
 				if(State.PosX!=-1&&State.PosZ!=-1&&State.mainPlayerStatus==false){
@@ -141,7 +141,8 @@ public class map : MonoBehaviour {
 							thisBuild.kind=State.HouseKind[HouseIDKey];
 							thisBuild.HouseLevel=State.HouseLevel[HouseIDKey];
 							thisBuild.HP=State.HouseHP[HouseIDKey];
-							
+							thisBuild.MaxHP=State.HouseMaxHP[HouseIDKey];
+							thisBuild.status=State.HouseStatusNow[HouseIDKey];
 							if( State.HousePlayerID [HouseIDKey]!=State.PlayerName){
 								BuildNow.gameObject.tag="Enemy";
 							}
@@ -154,10 +155,28 @@ public class map : MonoBehaviour {
 							State.HouseStatus[HouseIDKey]=true;
 							continue;
 						}			
-
 						State.HouseUpdate[HouseIDKey]--;
 						build buildNow=State.HouseGameObject[HouseIDKey].GetComponent<build>();
+						if(buildNow.status==2||buildNow.status==3||buildNow.status==4){
+							if(State.HouseStatusNow[HouseIDKey]==1){
+								Vector3 Pos=new Vector3(State.HousePositionX[HouseIDKey],4f,State.HousePositionZ[HouseIDKey]);
+								
+							GameObject BombAnimateNow=(GameObject) Instantiate(BigBomb,Pos,BigBomb.transform.rotation);
+								
+								
+								Destroy(BombAnimateNow,2);
+							}
+						}
+						if(State.HouseStatusNow[HouseIDKey]==6){
+							Vector3 Pos=new Vector3(State.HousePositionX[HouseIDKey],4f,State.HousePositionZ[HouseIDKey]);
+							
+							GameObject BombAnimateNow=(GameObject) Instantiate(BigBomb,Pos,Building.transform.rotation);
 
+							Destroy(BombAnimateNow,2);
+							Server.Send ("58"+HouseIDKey+","+(-1*buildNow.HP));
+								
+						}
+					
 						if(State.HouseHP[HouseIDKey]<=0){
 							Server.Send ("57"+HouseIDKey);
 							destroyThisHouse(HouseIDKey);
@@ -197,6 +216,7 @@ public class map : MonoBehaviour {
 							thisBuild.kind=State.HouseKind[HouseIDKey];
 							thisBuild.HouseLevel=State.HouseLevel[HouseIDKey];
 							thisBuild.HP=State.HouseHP[HouseIDKey];
+							thisBuild.MaxHP=State.HouseMaxHP[HouseIDKey];
 							
 							if( State.HousePlayerID [HouseIDKey]!=State.PlayerName){
 								BuildNow.gameObject.tag="Enemy";
@@ -226,6 +246,9 @@ public class map : MonoBehaviour {
 						buildNow.kind=State.HouseKind[HouseIDKey];
 						buildNow.HouseLevel=State.HouseLevel[HouseIDKey];
 						buildNow.HP=State.HouseHP[HouseIDKey];
+						buildNow.MaxHP=State.HouseMaxHP[HouseIDKey];
+						buildNow.status=State.HouseStatusNow[HouseIDKey];
+					
 					}//if containkey
 				}//house Foreach
 

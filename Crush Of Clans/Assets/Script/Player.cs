@@ -39,14 +39,14 @@ public class Player : MonoBehaviour {
 	private string[] BombInfo = {"威力：400 範圍：單一","威力：800 範圍：九宮格","威力：1000 範圍：連鎖"};
 	
 	//public  string[] sourceName={"wood","stone","metal","XX","YY"};//0 wood, 1 stone ,2 metal;
-	private int[] weight={5,10,20,10,10,10,30,30};// = {5,10,50};//0 wood, 1 stone ,2 metal;
+	private int[] weight={3,5,10,5,5,5,10,10};// = {5,10,50};//0 wood, 1 stone ,2 metal;
 	public int[] bombWeight;
 	public int[,] toolWeight;
 	public int x,y,z;//
 	public bool Build=false,click=false,Bomb=false,BombGameStart=false,buttonEnable=false,bag=false,GetPosition=false,isHomeExsist=false,BombSelect=false,put=false;
 	private Rigidbody BuildNow;
 	private GameObject PickSource,TriggerHouse,DestroyHouse;
-	public GameObject fire,Building,GetStone,GetWood,Smoke,SmokeAnimation,BombAnimation,BombObjectS ,BombObjectM ,BombObjectL;
+	public GameObject fire,Building,GetStone,GetWood,Smoke,SmokeAnimation,BombAnimation,BombObjectS ,BombObjectM ,BombObjectL,BigBomb;
 	public Rigidbody build_house;
 	public bool info,BombSelected;
 	public string infotext;
@@ -55,7 +55,7 @@ public class Player : MonoBehaviour {
 	//attribute
 	private char[] BombGame={'1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','I','M','N','O','P'};
 	private char[] GameQ = {'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x'};
-	private int[] BombGameTime = {5,20,50,10};
+	private int[] BombGameTime = {4,8,20,10};
 	private int[,] pick = {{5,10},{20,40},{20,40}};//{{5,5,10,15},{10,20,30,40},{20,40,60,80},{30,60,90,120}};
 	private int[] BombGameButton = {4,9,16,25};
 
@@ -68,7 +68,11 @@ public class Player : MonoBehaviour {
 	public int weightNow;
 	private int limit=0;
 	private string PutQuatity="0";
-	
+	public AudioClip sound;
+	public AudioClip isBomb;
+	public AudioClip laught;
+	protected AudioSource m_sound;
+
 	//控制移動
 	public bool move_flag = false;
 	public float[] point = new float[2];
@@ -84,7 +88,45 @@ public class Player : MonoBehaviour {
 
 
 	
-	
+	void bigBomb(int status,string HouseID){
+		int[] damageSource = new int[8]{0,0,0,0,0,0,0,0};
+		if(status==2){
+			
+			infomationText("敵人在你的建築上設了陷阱！你失去了身上的30％資源！！");
+			for (int i =0; i<8; i++) {
+				damageSource[i]=(int)-1*source[i]*30/100;
+				print (damageSource[i].ToString());
+			}
+			sendSourceModify(damageSource);
+			Server.Send("65"+HouseID+",1");
+		}
+		if(status==3){
+			
+			infomationText("敵人在你的建築上設了陷阱！你失去了身上的60％資源！！");
+			for (int i =0; i<8; i++) {
+				damageSource[i]=(int)-1*source[i]*60/100;
+			}
+			sendSourceModify(damageSource);
+			Server.Send("65"+HouseID+",1");
+		}
+		if(status==4){
+			
+			infomationText("敵人在你的建築上設了陷阱！你失去了身上的100％資源！！");
+			for (int i =0; i<8; i++) {
+				damageSource[i]=(int)-1*source[i];
+			}
+			sendSourceModify(damageSource);
+			Server.Send("65"+HouseID+",1");
+		}
+		m_sound.PlayOneShot(isBomb);
+		
+		Vector3 Pos=new Vector3(State.HousePositionX[HouseID],4f,State.HousePositionZ[HouseID]);
+		
+		GameObject BombAnimateNow=(GameObject) Instantiate(BigBomb,Pos,BigBomb.transform.rotation);
+		
+		
+		Destroy(BombAnimateNow,2);
+	}
 
 	void sendSourceModify(int[] quatity){
 		
@@ -130,7 +172,7 @@ public class Player : MonoBehaviour {
 		}
 	}*/
 	void Start () {
-
+		m_sound = this.audio;
 		BombSelect = false;
 		GetPosition = false;
 		selectPutSource = 0;
@@ -160,7 +202,8 @@ public class Player : MonoBehaviour {
 		}
 		PlayerID = State.PlayerName;
 		//StartCoroutine("server_function");
-		
+		tool=State.tool;
+		toolKind=State.toolKind;
 	}
 	
 	// Update is called once per frame
@@ -307,26 +350,27 @@ public class Player : MonoBehaviour {
 			GUI.Box (new Rect (100, 100, 100, 100), UpGrade, guiSkin.box);
 			GUI.matrix = old_matrix;*/
 
-		if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
+		/*if (GUILayout.Button ("Connect", GUILayout.Height(50))) {
 			Server.ConnectToServer();
 			Send("10singo,singo");
-		}
-		if (GUILayout.Button ("Send", GUILayout.Height(50))) {
+		}*/
+/*if (GUILayout.Button ("Send", GUILayout.Height(50))) {
 			
-			Send("31");
-			Send("32");
+			Server.Send("264,0");
+			//Send("32");
 
-		}
+		}*/
+			/*
 		if(GUILayout.Button("Close")){
 			State.clientSocket.Close();//關閉通訊器
 				infomationText("伺服器斷線了！");
 			print("伺服器斷線了！");//顯示斷線
 			
 			State.chkThread=false;
-		}
+		}*/
 
 		
-		if(click==false){
+		if(click==false ||BombSelected==true){
 		//我這裡先不考慮其他人物存在的情況，因為如果多個角色存在，還會有攝影機的問題
 		//應該要有一個變數來記錄說，如果是其他人物，要把攝影機關掉
 		//依照物件的collider的高度做參考計算位置
@@ -387,6 +431,10 @@ public class Player : MonoBehaviour {
 			}
 		///Bag/////
 		if (bag == true) {
+			tool=State.tool;
+			toolKind=State.toolKind;
+			cart=State.cart;
+
 			GUI.BeginGroup(new Rect (Screen.width/10, Screen.height/10, Screen.width*4/5, Screen.height*4/5));
 			GUI.Box (new Rect (0,0, Screen.width*4/5, Screen.height*4/5), "", guiSkin.box);
 				if(tool==1 && toolKind==0){
@@ -406,8 +454,8 @@ public class Player : MonoBehaviour {
 					
 				}
 			//GUI.Label (new Rect (Screen.width/10,Screen.height*3/10, Screen.width*1/5, Screen.width*1/25), HouseName[selectHouse], guiSkin.label);
-			GUI.Label (new Rect (Screen.width/10+Screen.width*1/20,Screen.height*9/20, Screen.width*1/10, Screen.width*1/5), "採集量："+pick[tool,toolKind], guiSkin.label);
-			GUI.Label (new Rect (Screen.width/10,Screen.height*9/20+Screen.width*1/10, Screen.width*1/5, Screen.width*1/5),"重量:"+weightNow+"/"+package[cart], guiSkin.label);
+				GUI.Label (new Rect (Screen.width/10+Screen.width*1/20,Screen.height*9/20, Screen.width*1/10, Screen.width*1/5), "CD："+CDtime[tool,toolKind], guiSkin.label);
+			GUI.Label (new Rect (Screen.width/10,Screen.height*7/20+Screen.width*1/10, Screen.width*1/5, Screen.width*1/4),"重量:"+weightNow+"/"+package[cart], guiSkin.label);
 			//GUI.Label (new Rect (Screen.width*3/8, Screen.height* 9/ 16 , Screen.width/3, Screen.height/8 ), "", guiSkin.label);
 				
 				if(selectPutSource==0 ||put==true)GUI.enabled=false;else GUI.enabled=true;
@@ -472,18 +520,18 @@ public class Player : MonoBehaviour {
 					selectPutSource=7;
 					
 				}
-
+				GUI.enabled=true;
 			
-			if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
-				bag = false;
-				click=false;
-					put=false;
-			}
-			GUI.EndGroup();
+				if (GUI.Button (new Rect (Screen.width*11/15, 0 , Screen.width/15, Screen.width/15 ),"X",guiSkin.button)){
+					bag = false;
+					click=false;
+						put=false;
+				}
+				GUI.EndGroup();
 			
 
 				
-				if (GUI.Button (new Rect (Screen.width * 6 / 20, Screen.height * 4 / 10 + Screen.width * 1 / 5, Screen.width * 1 / 8, Screen.width * 1 / 15), "丟棄", guiSkin.button)) {
+				if (GUI.Button (new Rect (Screen.width * 5 / 20, Screen.height * 4 / 10 + Screen.width * 1 / 5, Screen.width * 1 / 8, Screen.width * 1 / 15), "丟棄", guiSkin.button)) {
 					put = true;
 					limit=0;
 					PutQuatity="0";
@@ -529,7 +577,7 @@ public class Player : MonoBehaviour {
 					if (GUI.Button (new Rect (Screen.width * 8 / 20, Screen.height / 2 + Screen.height * 1 / 15, Screen.width * 1 / 10, Screen.height * 1 / 10), "確定", guiSkin.button)) {
 
 						if (put == true) {
-							quatity[0]= -1*int.Parse (PutQuatity);
+							quatity[selectPutSource]= -1*int.Parse (PutQuatity);
 							
 							source [selectPutSource] = source [selectPutSource] - int.Parse (PutQuatity);
 							
@@ -563,31 +611,84 @@ public class Player : MonoBehaviour {
 		if(BombSelected==true){ 
 				GUI.Box (new Rect (0, Screen.height / 5, Screen.width, Screen.height / 10),"選擇目標",guiSkin.box);
 				
-				if(Status==0 ||Status==1){
-					GUI.enabled=false;
-				}else{
+				if(Status==5){
 					GUI.enabled=true;
+				}else{
+					GUI.enabled=false;
 					
 				}
 
 			if (GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),BombPng,guiSkin.customStyles[3])){
-					j=0;
-					w=1;
-					h=1;
-					BombGameQ="";
-					BombGameInput="";
-					
-					for(int i =0;i<BombGameButton[bombKind];i++){
-						GameQ[i]=BombGame[(int)(UnityEngine.Random.Range(0, BombGameButton[bombKind]))];
-						BombGameQ+=GameQ[i];
-						BombGameQ+=" ";
-					}	
-					BombGameStart=true;
-					GameTime=Time.time;
+					build triggerHouesNow=TriggerHouse.GetComponent<build>();
+					if(triggerHouesNow.status!=5){
 
-					toolBomb[bombKind]--;
-					BombSelected=false;
-					
+
+						
+							j=0;
+							w=1;
+							h=1;
+							BombGameQ="";
+							BombGameInput="";
+							
+							for(int i =0;i<BombGameButton[bombKind%3];i++){
+								GameQ[i]=BombGame[(int)(UnityEngine.Random.Range(0, BombGameButton[bombKind%3]))];
+								BombGameQ+=GameQ[i];
+								BombGameQ+=" ";
+							}	
+							BombGameStart=true;
+							GameTime=Time.time;
+
+							//toolBomb[bombKind]--;
+							Server.Send ("28"+((bombKind%3)+1).ToString()+",-1");
+							print ("28"+((bombKind%3)+1).ToString()+",-1");
+							BombSelected=false;
+
+
+					}else{
+						int persent=0;
+						switch(triggerHouesNow.HouseLevel){
+						case 1:
+							persent=20;
+							break;
+						case 2:
+							persent=40;
+							break;
+						case 3:
+							persent=60;
+							break;
+						case 4:
+							persent=80;
+							break;
+						case 5:
+							persent=100;
+							break;
+						}
+						m_sound.PlayOneShot(isBomb);
+						infomationText("這是敵人設計的陷阱！你失去了身上的"+persent.ToString()+"％資源！！");
+						int[] quantity=new int[8]{0,0,0,0,0,0,0,0};
+						for(int i=0;i<8;i++){
+							quantity[i]=(int)-1*source[i]*persent/100;
+						}
+						sendSourceModify (quantity);
+
+						Vector3 Pos = new Vector3 (this.gameObject.transform.position.x - 1, this.gameObject.transform.position.y + 5, this.gameObject.transform.position.z + 1);
+						GameObject animateNow = (GameObject)Instantiate (BombAnimation, Pos, Building.transform.rotation);
+						Pos = new Vector3 (this.transform.position.x, this.transform.position.y + 4, this.transform.position.z);
+						
+						GameObject SomkeNow = (GameObject)Instantiate (Smoke, Pos, Building.transform.rotation);
+						Pos = new Vector3 (this.transform.position.x, this.transform.position.y + 4.1f, this.transform.position.z);
+						
+						GameObject SmokeAnimateNow = (GameObject)Instantiate (SmokeAnimation, Pos, Building.transform.rotation);
+						Server.Send("65"+triggerHouesNow.HouseID+",6");
+						Destroy (animateNow, 1);
+						Destroy (SomkeNow, 1);
+						Destroy (SmokeAnimateNow, 1);
+
+						BombSelected=false;
+						
+						click=false;
+
+					}
 				}
 
 				GUI.enabled=true;
@@ -599,24 +700,24 @@ public class Player : MonoBehaviour {
 			}
 		}
 
-		if (5 - (int)(Time.time - BombTimeCount) >= 1) {
+	/*	if (5 - (int)(Time.time - BombTimeCount) >= 1) {
 			infomationText(((int)(5-(Time.time-BombTimeCount))).ToString());
 			
-		}
+		}*/
 		if (BombGameStart == true) {
 
-			if(Time.time-GameTime>=BombGameTime[bombKind]){
+			if(Time.time-GameTime>=BombGameTime[bombKind%3]){
 				infomationText("False....");
 				BombGameStart=false;
 				click=false;
 				
 			}
 
-			GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 1/ 10 , Screen.width/2, Screen.height/10 ),BombGameQ,guiSkin.textArea);
-				GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 2/ 10, Screen.width/2, Screen.height/10 ),BombGameInput,guiSkin.textArea);
-				GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 3/ 10, Screen.width/2*((BombGameTime[bombKind]-Time.time+GameTime)/BombGameTime[bombKind]), Screen.height/20 ),"",guiSkin.textArea);
+				GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 1/ 10 , Screen.width/2, Screen.height/10 ),BombGameQ,guiSkin.textField);
+				GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 2/ 10, Screen.width/2, Screen.height/10 ),BombGameInput,guiSkin.textField);
+				GUI.Box(new Rect (Screen.width* 1/4, Screen.height* 3/ 10, Screen.width/2*((BombGameTime[bombKind%3]-Time.time+GameTime)/BombGameTime[bombKind%3]), Screen.height/20 ),"",guiSkin.textField);
 			
-			switch(bombKind){
+			switch(bombKind%3){
 			case 0:
 				w=1;
 				h=1;
@@ -631,6 +732,8 @@ public class Player : MonoBehaviour {
 					if (GUI.Button (new Rect (Screen.width*w/4, Screen.height* h/ 3 , Screen.width/4, Screen.height/3 ),BombGame[i].ToString(),guiSkin.button)){
 						if(GameQ[j]!=BombGame[i]){
 							infomationText("False....");
+							m_sound.PlayOneShot(isBomb);
+								
 							BombGameStart=false;
 								click=false;
 							break;
@@ -648,14 +751,31 @@ public class Player : MonoBehaviour {
 				}
 				
 				if (j>=4){
-					DestroyHouse=TriggerHouse;
-						Instantiate(BombObjectS,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectS.transform.rotation);
+						if(bombKind==0){
+							DestroyHouse=TriggerHouse;
+							Instantiate(BombObjectS,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectS.transform.rotation);
+							
+							click=false;
+							Bomb=false;
+							BombGameStart=false;
+							move_flag = false;
+							j=0;
+						}else{
+							build triggerHouesNow=TriggerHouse.GetComponent<build>();
+							
+							//triggerHouesNow.status=bombKind-1;
+							Server.Send("65"+triggerHouesNow.HouseID+","+(bombKind-1).ToString());
+							print ("65"+triggerHouesNow.HouseID+","+(bombKind-1).ToString());
+							m_sound.PlayOneShot(laught);
+							infomationText("陷阱設置成功！");
+							click=false;
+							Bomb=false;
+							BombGameStart=false;
+							move_flag = false;
+							j=0;
+							
+						}
 					
-					click=false;
-					Bomb=false;
-					BombGameStart=false;
-					move_flag = false;
-					j=0;
 				}
 				break;
 			case 1:
@@ -669,6 +789,8 @@ public class Player : MonoBehaviour {
 					}
 						if (GUI.Button (new Rect (Screen.width*w/5, Screen.height* 1/ 3 + (Screen.height* (h-1)*2/ 9), Screen.width/5, Screen.height*2/9 ),BombGame[i].ToString(),guiSkin.button)){
 						if(GameQ[j]!=BombGame[i]){
+							m_sound.PlayOneShot(isBomb);
+								
 							infomationText("False....");
 							BombGameStart=false;
 								click=false;
@@ -681,14 +803,29 @@ public class Player : MonoBehaviour {
 					w++;
 				}
 				if (j>=9){
-					DestroyHouse=TriggerHouse;
-						Instantiate(BombObjectM,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectM.transform.rotation);
-						
-					click=false;
-					Bomb=false;
-					BombGameStart=false;
-					j=0;
-					move_flag = false;
+						if(bombKind==1){
+							DestroyHouse=TriggerHouse;
+								Instantiate(BombObjectM,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectM.transform.rotation);
+								
+							click=false;
+							Bomb=false;
+							BombGameStart=false;
+							j=0;
+							move_flag = false;
+						}else{
+							build triggerHouesNow=TriggerHouse.GetComponent<build>();
+							
+							//triggerHouesNow.status=bombKind-1;
+							Server.Send("65"+triggerHouesNow.HouseID+","+(bombKind-1).ToString ());
+							infomationText("陷阱設置成功！");
+							m_sound.PlayOneShot(laught);
+							
+							click=false;
+							Bomb=false;
+							BombGameStart=false;
+							j=0;
+							move_flag = false;
+						}
 				}
 				break;
 			case 2:
@@ -702,6 +839,8 @@ public class Player : MonoBehaviour {
 					}
 						if (GUI.Button (new Rect (Screen.width*1/4+(Screen.width*(w-1)/8), Screen.height* 1/ 3 + (Screen.height* (h-1)/ 6), Screen.width/8, Screen.height*1/6 ),BombGame[i].ToString(),guiSkin.button)){
 						if(GameQ[j]!=BombGame[i]){
+							m_sound.PlayOneShot(isBomb);
+								
 							infomationText("False....");
 							BombGameStart=false;
 						click=false;
@@ -715,14 +854,29 @@ public class Player : MonoBehaviour {
 					w++;
 				}
 				if (j>=16){
-						DestroyHouse=TriggerHouse;
-						Instantiate(BombObjectL,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectL.transform.rotation);
-						
-						click=false;
-					Bomb=false;
-					BombGameStart=false;
-					j=0;
-					move_flag = false;
+						if(bombKind==2){
+							DestroyHouse=TriggerHouse;
+							Instantiate(BombObjectL,DestroyHouse.transform.position+new Vector3(0,3,0),BombObjectL.transform.rotation);
+								
+							click=false;
+							Bomb=false;
+							BombGameStart=false;
+							j=0;
+							move_flag = false;
+						}else{
+							build triggerHouesNow=TriggerHouse.GetComponent<build>();
+							
+							//triggerHouesNow.status=bombKind-1;
+							Server.Send("65"+triggerHouesNow.HouseID+","+(bombKind-1).ToString ());
+							infomationText("陷阱設置成功！");
+							m_sound.PlayOneShot(laught);
+							
+							j=0;
+							move_flag = false;
+							click=false;
+							Bomb=false;
+							BombGameStart=false;
+						}
 				}
 				break;
 			case 3:
@@ -739,11 +893,15 @@ public class Player : MonoBehaviour {
 		///FuctionButton/////
 		if (click == false) {//hide FuctionButton
 			if (Build==false && GUI.Button (new Rect (Screen.width-Screen.width/8, Screen.height* 3 / 4-Screen.height/5 , Screen.width/10, Screen.height/6 ),Bag,guiSkin.customStyles[3])){
+				Server.Send ("25");
 				bag=true;
 				click=true;
 			}
-				if (Build==false && GUI.Button (new Rect (Screen.width-Screen.width/8, Screen.height* 3 / 4-Screen.height*2/5, Screen.width/10, Screen.height/6 ),BombPng,guiSkin.customStyles[3])){
+			if (Build==false && GUI.Button (new Rect (Screen.width-Screen.width/8, Screen.height* 3 / 4-Screen.height*2/5, Screen.width/10, Screen.height/6 ),BombPng,guiSkin.customStyles[3])){
+				Server.Send ("27");
+				
 				BombSelect = true;
+
 				click=true;
 			}
 				if(Status==1 &&Time.time-picktime<CDtime[tool,toolKind]){
@@ -753,6 +911,10 @@ public class Player : MonoBehaviour {
 					
 				}
 			if (Build==false && GUI.Button (new Rect (Screen.width* 5 / 6, Screen.height* 3 / 4 , Screen.width/6, Screen.height/4 ),FunctionButton[Status],guiSkin.customStyles[3])){
+					if(Status!=0 && Status!=1 &&Status!=5){
+						m_sound.PlayOneShot(sound);
+						
+					}
 					float randomKind=0f;
 					//randomKind=Random.value;
 				switch (Status){
@@ -816,8 +978,8 @@ public class Player : MonoBehaviour {
 										}
 									}
 									Server.Send ("46"+pickup.SourceID);
-									
-								infomationText("取得 "+getQutity[0].ToString()+" "+sourceName[kind]+" !");
+
+									infomationText("取得 "+getQutity[0].ToString()+" "+sourceName[kind]+" !");
 
 								}else{
 									if(quatity[0]+quatity[1]+quatity[2]<=pick[tool,toolKind]){
@@ -891,7 +1053,12 @@ public class Player : MonoBehaviour {
 										}
 									}
 									Server.Send ("46"+pickup.SourceID);
-									infomationText("取得 "+getQutity[0].ToString()+sourceName[1]+" "+getQutity[1].ToString()+sourceName[6]+" "+getQutity[2].ToString()+" "+sourceName[7]+" !");
+									getQutity[0]=(pickup.quatity[0]>=3)?3:pickup.quatity[0];
+									getQutity[1]=(pickup.quatity[1]>=2)?2:pickup.quatity[1];
+									getQutity[2]=(pickup.quatity[1]>=1)?1:pickup.quatity[2];
+								
+
+									infomationText("取得 "+(getQutity[0]).ToString()+sourceName[1]+" "+(getQutity[1]).ToString()+sourceName[6]+" "+(getQutity[2]).ToString()+" "+sourceName[7]+" !");
 									
 								}
 
@@ -934,32 +1101,65 @@ public class Player : MonoBehaviour {
 					break;
 				case 2:
 					//倉庫放這邊
+
 					build StockNow = TriggerHouse.GetComponent<build>();
-					StockNow.work=true;
-					click=true;
+						if(StockNow.status!=1 && StockNow.status!=5){
+							bigBomb(StockNow.status,StockNow.HouseID);
+							StockNow.status=1;
+						}else{
+							StockNow.work=true;
+							click=true;
+						}
+					
 					break;
 				case 3:
 					build WorkNow = TriggerHouse.GetComponent<build>();
-					WorkNow.work=true;
-					click=true;
+						if(WorkNow.status!=1 && WorkNow.status!=5){
+							bigBomb(WorkNow.status,WorkNow.HouseID);
+							WorkNow.status=1;
+							
+						}else{
+							WorkNow.work=true;
+							click=true;
+						}
 					//合成放這邊				
 					break;
 				case 4:
 					build ScienceNow = TriggerHouse.GetComponent<build>();
-					ScienceNow.work=true;
-					click=true;
+						if(ScienceNow.status!=1 && ScienceNow.status!=5){
+							bigBomb(ScienceNow.status,ScienceNow.HouseID);
+							ScienceNow.status=1;
+							
+						}else{
+							ScienceNow.work=true;
+							click=true;
+						}
 					//精煉放這邊	
 					break;
 				case 5:
 					//裝炸彈放這邊
 					break;
 				case 6:
-
-						break;
+					build HouseNow = TriggerHouse.GetComponent<build>();
+						if(HouseNow.status!=1 && HouseNow.status!=5){
+							bigBomb(HouseNow.status,HouseNow.HouseID);
+							HouseNow.status=1;
+							
+						}else{
+							HouseNow.work=true;
+							click=true;
+						}
+					break;
 				case 7:
-				build HouseNow = TriggerHouse.GetComponent<build>();
-				HouseNow.work=true;
-				click=true;
+					build B101Now = TriggerHouse.GetComponent<build>();
+						if(B101Now.status!=1 && B101Now.status!=5){
+							bigBomb(B101Now.status,B101Now.HouseID);
+							B101Now.status=1;
+							
+						}else{
+							B101Now.work=true;
+							click=true;
+						}
 					
 				break;
 				}	
@@ -1018,7 +1218,7 @@ public class Player : MonoBehaviour {
 		GUI.enabled = true;
 
 			if(BombSelect==true){
-
+				toolBomb=State.toolBomb;
 				GUI.BeginGroup(new Rect (Screen.width/10, Screen.height/10, Screen.width*4/5, Screen.height*4/5));
 				GUI.Box (new Rect (0,0, Screen.width*4/5, Screen.height*4/5), "", guiSkin.box);
 
@@ -1033,10 +1233,16 @@ public class Player : MonoBehaviour {
 				}else{
 					GUI.enabled=true;	
 				}
-				if (GUI.Button (new Rect (Screen.width*1/16,Screen.height*10/20, Screen.width*1/10, Screen.width*1/20 ),"設置",guiSkin.button)){
+				if (GUI.Button (new Rect (Screen.width*1/30,Screen.height*10/20, Screen.width*1/6, Screen.width*1/32 ),"設置炸彈",guiSkin.button)){
 					BombSelected=true;
 					BombSelect=false;
 					bombKind=0;
+					
+				}
+				if (GUI.Button (new Rect (Screen.width*1/30,Screen.height*23/40, Screen.width*1/6, Screen.width*1/32 ),"設置地雷",guiSkin.button)){
+					BombSelected=true;
+					BombSelect=false;
+					bombKind=3;
 					
 				}
 				GUI.enabled=true;
@@ -1053,11 +1259,17 @@ public class Player : MonoBehaviour {
 				}else{
 					GUI.enabled=true;	
 				}
-				if (GUI.Button (new Rect (Screen.width*1/16,Screen.height*10/20, Screen.width*1/10, Screen.width*1/20 ),"設置",guiSkin.button)){
+				if (GUI.Button (new Rect (Screen.width*1/30,Screen.height*10/20, Screen.width*1/6, Screen.width*1/32 ),"設置炸彈",guiSkin.button)){
 					BombSelected=true;
 					BombSelect=false;
 					bombKind=1;
 				
+				}
+				if (GUI.Button (new Rect (Screen.width*1/30,Screen.height*23/40, Screen.width*1/6, Screen.width*1/32 ),"設置地雷",guiSkin.button)){
+					BombSelected=true;
+					BombSelect=false;
+					bombKind=4;
+					
 				}
 				GUI.enabled=true;
 				
@@ -1074,10 +1286,15 @@ public class Player : MonoBehaviour {
 				}else{
 					GUI.enabled=true;	
 				}
-				if (GUI.Button (new Rect (Screen.width*1/16,Screen.height*10/20, Screen.width*1/10, Screen.width*1/20 ),"設置",guiSkin.button)){
+				if (GUI.Button (new Rect (Screen.width*1/30,Screen.height*10/20, Screen.width*1/6, Screen.width*1/32 ),"設置炸彈",guiSkin.button)){
 					BombSelected=true;
 					BombSelect=false;
 					bombKind=2;
+				}
+				if (GUI.Button (new Rect (Screen.width*1/30,Screen.height*23/40, Screen.width*1/6, Screen.width*1/32 ),"設置地雷",guiSkin.button)){
+					BombSelected=true;
+					BombSelect=false;
+					bombKind=5;
 				}
 				GUI.enabled=true;
 				
@@ -1196,6 +1413,7 @@ public class Player : MonoBehaviour {
 			break;
 		case "Enemy":
 			Status = 5;
+			TriggerHouse=other.gameObject;
 			
 			break;
 		case "House":

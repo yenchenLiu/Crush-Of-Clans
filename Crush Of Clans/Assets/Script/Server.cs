@@ -67,10 +67,12 @@ public class Server : MonoBehaviour {
 				if (loadLen != 0 && strAll.IndexOf(findThisString) != -1) {
 					string[] control = strAll.Split(new string[]{"@@@@@"}, StringSplitOptions.RemoveEmptyEntries);
 					print(strAll);
-					
+
 				//	print (strAll);
 					foreach (var item in control) {
-						
+						if(item.IndexOf("@")!=-1){
+							break;
+						}
 						strCase = item.Substring(0, 2);
 					
 						switch (strCase) {
@@ -119,6 +121,40 @@ public class Server : MonoBehaviour {
 							
 							State.source[int.Parse (strsources[0])-1]=int.Parse (strsources[1]);//0 wood, 1 stone ,2 metal;
 							break;
+						case "25":
+							strInfo=item.Substring(2);
+							
+							string[] strTool=strInfo.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+							if(strTool[0]=="0" ){
+								State.tool=0;
+								State.toolKind=0;
+							}
+							if(strTool[0]=="1" ){
+								State.tool=1;
+								State.toolKind=0;
+							}
+							if(strTool[0]=="2" ){
+								State.tool=1;
+								State.toolKind=1;
+							}
+							if(strTool[0]=="3" ){
+								State.tool=2;
+								State.toolKind=0;
+							}
+							if(strTool[0]=="4" ){
+								State.tool=2;
+								State.toolKind=1;
+							}
+							if(int.Parse(strTool[1])<=2){
+								State.cart=int.Parse (strTool[1]);
+							}
+							break;
+						case "27":
+							strInfo=item.Substring(2);
+							
+							string[] StrBomb=strInfo.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+							State.toolBomb[int.Parse (StrBomb[0])-1]=int.Parse (StrBomb[1]);
+							break;
 						case "31":
 							strInfo=item.Substring(2);
 							string[] strPlayers=strInfo.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
@@ -158,6 +194,7 @@ public class Server : MonoBehaviour {
 								State.HousePlayerID.Add(strHouses[0],strHouses[2]);
 								
 								State.HouseHP.Add(strHouses[0],int.Parse(strHouses[5]));
+								State.HouseMaxHP.Add(strHouses[0],int.Parse(strHouses[6]));
 								State.HousePositionX.Add(strHouses[0],int.Parse(strHouses[3]));
 								State.HousePositionZ.Add(strHouses[0],int.Parse(strHouses[4]));
 								State.HouseLevel.Add(strHouses[0],int.Parse(strHouses[7]));
@@ -174,7 +211,10 @@ public class Server : MonoBehaviour {
 								State.HouseLevel[strHouses[0]]=int.Parse(strHouses[7]);
 								State.HouseStatusNow[strHouses[0]]=int.Parse(strHouses[8]);
 								State.HouseHP[strHouses[0]]=int.Parse(strHouses[5]);
+								State.HouseMaxHP[strHouses[0]]=int.Parse(strHouses[6]);
+								
 								State.HouseUpdate[strHouses[0]]=5;
+								State.HouseStatusNow[strHouses[0]]=int.Parse(strHouses[8]);
 								
 
 							}
@@ -242,6 +282,69 @@ public class Server : MonoBehaviour {
 								State.SourceUpdate[strSource[0]]=5;
 								
 							}
+							break;
+						case "61":
+							print ("HouseSource:"+item);
+							
+							strInfo=item.Substring(2);
+							string[] strHousesSource=strInfo.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+							if(strHousesSource.Length<3 && strHousesSource[2]!="" &&strHousesSource[2]!=null){
+								continue;
+							}
+							int[] source=new int[8]{0,0,0,0,0,0,0,0};
+							if(!State.HouseStockSource.ContainsKey(strHousesSource[0])){
+								
+								State.HouseStockSource.Add (strHousesSource[0],source);
+								
+							}
+							source=State.HouseStockSource[strHousesSource[0]];
+							source[int.Parse(strHousesSource[1])]=int.Parse(strHousesSource[2]);
+							State.HouseStockSource[strHousesSource[0]]=source;
+							break;
+						case "63":
+							print ("HouseTool:"+item);
+							
+							strInfo=item.Substring(2);
+							string[] strHousesTool=strInfo.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+							if(strHousesTool.Length<3 && strHousesTool[2]!="" &&strHousesTool[2]!=null){
+								continue;
+							}
+							int[,] tool=new int[4,3]{{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
+							if(!State.HouseTool.ContainsKey(strHousesTool[0])){
+								
+								State.HouseTool.Add (strHousesTool[0],tool);
+								
+							}
+							tool=State.HouseTool[strHousesTool[0]];
+							if(strHousesTool[1]=="1"){
+								tool[0,0]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="2"){
+								tool[0,1]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="3"){
+								tool[1,0]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="4"){
+								tool[1,1]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="5"){
+								tool[2,0]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="6"){
+								tool[2,1]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="7"){
+								tool[2,2]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="8"){
+								tool[3,0]=int.Parse(strHousesTool[2]);
+							}
+							if(strHousesTool[1]=="9"){
+								tool[3,1]=int.Parse(strHousesTool[2]);
+							}
+
+							State.HouseTool[strHousesTool[0]]=tool;
 							break;
 						case "er"://If Client Send Message length < 2 , Server can send "er"
 

@@ -54,12 +54,14 @@ public class AnotherPlayer : MonoBehaviour {
 		this.name = PlayerID;
 		x = this.transform.position.x;
 		z = this.transform.position.z;
+		this.transform.FindChild("Name").GetComponent<TextMesh>().text = PlayerID;
 		
 	} 
 	
 	// Update is called once per frame
 	void Update () {
 		//分別填入目的地的XYZ，Y固定1.5f，XZ填入伺服器送來的座標
+		
 		Vector3 temp = new Vector3 (x, 1.5f, z);
 		if (State.PlayerPositionX.ContainsKey (PlayerID) && State.PlayerPositionZ.ContainsKey (PlayerID)) {
 			temp = new Vector3 (State.PlayerPositionX [PlayerID], 1.5f, State.PlayerPositionZ [PlayerID]);

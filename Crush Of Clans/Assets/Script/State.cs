@@ -10,8 +10,9 @@ public class State : MonoBehaviour {
 	static public string ID=null;
 	static public string Password=null;
 	static public float PosX=-1f,PosZ=-1f;
-	static public int[] source = new int[8];
-	static public int bombTotal=0;
+	static public int[] source = new int[8]{0,0,0,0,0,0,0,0};
+	static public int[] toolBomb = new int[3]{0,0,0};
+	static public int bombTotal=0,tool=0,cart=0,toolKind=0,tooHP=0;
 	static public bool mainPlayerStatus = false;
 	static public bool DataLoad=false;
 	static public GameObject PlayerGameObject=null;
@@ -36,6 +37,7 @@ public class State : MonoBehaviour {
 	static public Dictionary<string,int> HousePositionX=new  Dictionary<string,int> ();
 	static public Dictionary<string,int> HousePositionZ=new Dictionary<string,int> (); 
 	static public Dictionary<string,int> HouseHP=new Dictionary<string,int>();
+	static public Dictionary<string,int> HouseMaxHP=new Dictionary<string,int>();
 	static public Dictionary<string,int> HouseKind=new Dictionary<string,int> ();
 	static public Dictionary<string,int> HouseLevel=new Dictionary<string,int>();
 	static public Dictionary<string,string> HousePlayerID=new Dictionary<string,string>();
@@ -46,7 +48,9 @@ public class State : MonoBehaviour {
 	static public Dictionary<string,string> HouseList=new Dictionary<string,string>();
 	
 
-
+	static public Dictionary<string,int[]> HouseStockSource=new Dictionary<string,int[]>();
+	static public Dictionary<string,int[,]> HouseTool=new Dictionary<string,int[,]>();
+	
 	static public Dictionary<string,bool> HouseStatus=new Dictionary<string,bool>();//is Instantiate or not
 
 	
